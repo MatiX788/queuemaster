@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QueueMaster</title>
+<style>
+:root {
+  --accent:#c8102e; --bg:#111; --text:#fff; --muted:#888;
+  --yellow:#e6b800; --green:#2e7d32;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--text);font-family:'Arial Black',Arial,sans-serif;display:flex;flex-direction:column;height:100vh}
+
+/* HEADER */
+.zone-header{flex-shrink:0;background:#1a1a1a;border-bottom:3px solid var(--accent);padding:8px 20px;display:flex;align-items:center;justify-content:space-between;overflow:hidden;gap:12px}
+.header-left{display:flex;align-items:center;gap:14px}
+.header-logo{height:clamp(28px,4vh,52px);max-width:160px;object-fit:contain;display:none}
+.header-logo.visible{display:block}
+.header-title{font-size:clamp(18px,3.5vw,48px);font-weight:900;letter-spacing:5px;text-transform:uppercase}
+.store-name-lbl{font-size:clamp(10px,1.4vw,18px);color:var(--muted);font-weight:700}
+.conn-dot{width:9px;height:9px;border-radius:50%;background:#555;transition:background .3s;flex-shrink:0}
+.conn-dot.on{background:#4caf50}
+.conn-dot.off{background:#f44336}
+
+/* STATUS */
+.zone-status{flex-shrink:0;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px 14px;overflow:hidden}
+.status-box{border-radius:10px;padding:8px 14px 12px;display:flex;flex-direction:column;align-items:center;overflow:hidden}
+.status-box.processing{background:var(--yellow)}
+.status-box.ready{background:var(--green)}
+.status-lbl{font-size:clamp(10px,1.5vw,17px);font-weight:900;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px}
+.status-box.processing .status-lbl{color:#000}
+.status-box.ready .status-lbl{color:#fff}
+.nums-wrap{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 12px}
+.num-chip{font-size:clamp(28px,5vw,76px);font-weight:900;line-height:1}
+.status-box.processing .num-chip{color:#000}
+.status-box.ready .num-chip{color:#fff}
+.num-chip.empty{opacity:.2}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.blink{animation:blink 1s ease-in-out infinite}
+
+/* MENU */
+.zone-menu{flex:1;min-height:0;overflow:hidden;padding:0 14px 6px;display:grid;grid-template-columns:1fr 1fr;gap:0 18px}
+.menu-col{display:flex;flex-direction:column;gap:4px;overflow:hidden}
+.menu-section{flex-shrink:0}
+.section-title{background:var(--accent);color:#fff;font-size:clamp(9px,1.2vw,16px);font-weight:900;letter-spacing:2px;text-transform:uppercase;padding:2px 10px;border-radius:4px;display:inline-block;margin-bottom:2px}
+.menu-item{display:flex;justify-content:space-between;font-size:clamp(8px,1.1vw,14px);padding:1.5px 0;color:#ddd;border-bottom:1px solid #222;font-family:Arial,sans-serif;font-weight:normal}
+.menu-item .mn{flex:1;padding-right:6px}
+.menu-item .mp{font-weight:700;color:#fff;white-space:nowrap}
+
+/* ADS */
+.zone-ads{flex-shrink:0;display:flex;flex-direction:column;overflow:hidden}
+.ad-display{flex:1;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.ad-slide{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:10px 24px;text-align:center;opacity:0;transition:opacity .7s}
+.ad-slide.active{opacity:1}
+.ad-title{font-size:clamp(14px,2.5vw,38px);font-weight:900;margin-bottom:4px}
+.ad-subtitle{font-size:clamp(10px,1.6vw,22px);font-weight:700;opacity:.9}
+.ad-image{max-height:85%;max-width:92%;object-fit:contain;border-radius:8px}
+.ad-fallback{display:flex;align-items:center;justify-content:center;height:100%;font-size:clamp(12px,2vw,26px);font-weight:900;color:var(--accent);letter-spacing:3px;text-transform:uppercase;text-align:center;padding:0 20px}
+.ad-progress{height:3px;background:rgba(255,255,255,.1);flex-shrink:0}
+.ad-progress-bar{height:100%;background:var(--accent);width:0%;transition:width linear}
+
+/* TICKER */
+.zone-ticker{flex-shrink:0;background:var(--accent);overflow:hidden;display:flex;align-items:center}
+.ticker-inner{display:inline-block;white-space:nowrap;animation:ticker-move 35s linear infinite;font-size:clamp(10px,1.5vw,17px);font-weight:700;letter-spacing:2px;color:#fff;padding-left:100%}
+@keyframes ticker-move{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+</style>
+</head>
+<body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+<script>
+// ── URL-Parameter lesen ──
+const urlParams  = new URLSearchParams(window.location.search);
+const MONITOR_ID = urlParams.get('monitor') || '';
+const SERVER     = window.location.origin;
+
+const ZONE_DEFAULTS = [
+  { id:'header', label:'Titel',             height:10, visible:true },
+  { id:'status', label:'Bearbeitung/Fertig',height:24, visible:true },
+  { id:'menu',   label:'Speisekarte',       height:null,visible:true,isAuto:true },
+  { id:'ads',    label:'Werbung',           height:20, visible:true },
+  { id:'ticker', label:'Lauftext',          height:6,  visible:true },
+];
+
+let zones    = JSON.parse(JSON.stringify(ZONE_DEFAULTS));
+let config   = {};
+let menuData = [];
+let ads      = [];
+let adCfg    = { rotation_interval: 8 };
+let adIndex  = 0;
+let adTimer  = null;
+
+// ── Layout bauen ──
+function buildLayout() {
+  document.body.innerHTML = '';
+  const currency = config.currency || '€';
+
+  zones.forEach(z => {
+    if (!z.visible) return;
+
+    if (z.id === 'header') {
+      const el = document.createElement('div');
+      el.className = 'zone-header';
+      el.style.flex = `0 0 ${z.height}%`;
+      if (z.bg) el.style.background = z.bg;
+      el.innerHTML = `
+        <div class="header-left">
+          <img id="headerLogo" class="header-logo${config.logo_url?' visible':''}" src="${config.logo_url||''}" alt="Logo">
+          <div class="header-title" style="color:${z.color||'#fff'}">${config.store_name||'Bestellstatus'}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <span class="store-name-lbl" id="monitorLabel">${config.monitorName||''}</span>
+          <div class="conn-dot off" id="connDot"></div>
+        </div>`;
+      document.body.appendChild(el);
+    }
+
+    else if (z.id === 'status') {
+      const el = document.createElement('div');
+      el.className = 'zone-status';
+      el.style.flex = `0 0 ${z.height}%`;
+      if (z.bg) el.style.background = z.bg;
+      el.innerHTML = `
+        <div class="status-box processing">
+          <div class="status-lbl">In Bearbeitung</div>
+          <div class="nums-wrap" id="processingNums"><span class="num-chip empty">—</span></div>
+        </div>
+        <div class="status-box ready">
+          <div class="status-lbl">Fertig zur Abholung</div>
+          <div class="nums-wrap" id="readyNums"><span class="num-chip empty">—</span></div>
+        </div>`;
+      document.body.appendChild(el);
+    }
+
+    else if (z.id === 'menu') {
+      const el = document.createElement('div');
+      el.className = 'zone-menu';
+      if (z.bg) el.style.background = z.bg;
+      el.innerHTML = `<div class="menu-col" id="menuLeft"></div><div class="menu-col" id="menuRight"></div>`;
+      document.body.appendChild(el);
+    }
+
+    else if (z.id === 'ads') {
+      if (config.showAds === false) return;
+      const el = document.createElement('div');
+      el.className = 'zone-ads';
+      el.style.flex = `0 0 ${z.height}%`;
+      if (z.bg) el.style.background = z.bg;
+      el.innerHTML = `
+        <div class="ad-progress"><div class="ad-progress-bar" id="adBar"></div></div>
+        <div class="ad-display" id="adDisplay">
+          <div class="ad-fallback" id="adFallback">Bitte warten Sie auf Ihre Nummer</div>
+        </div>`;
+      document.body.appendChild(el);
+    }
+
+    else if (z.id === 'ticker') {
+      if (config.showTicker === false) return;
+      const el = document.createElement('div');
+      el.className = 'zone-ticker';
+      el.style.flex = `0 0 ${z.height}%`;
+      if (z.bg) el.style.background = z.bg;
+      else if (config.accent_color) el.style.background = config.accent_color;
+      const t = config.ticker_text || 'Willkommen!';
+      el.innerHTML = `<span class="ticker-inner">${t} ★   ${t} ★   </span>`;
+      document.body.appendChild(el);
+    }
+  });
+
+  renderMenuContent();
+  updateAds(ads, adCfg);
+}
+
+function applyConfig(cfg) {
+  config = { ...config, ...cfg };
+  if (cfg.accent_color) document.documentElement.style.setProperty('--accent', cfg.accent_color);
+  const logo = document.getElementById('headerLogo');
+  if (logo) {
+    if (cfg.logo_url) { logo.src = cfg.logo_url; logo.classList.add('visible'); }
+    else logo.classList.remove('visible');
+  }
+  const title = document.querySelector('.header-title');
+  if (title && cfg.store_name) title.textContent = cfg.store_name;
+  document.title = (cfg.store_name || 'QueueMaster');
+  // Layout rebuild wenn display_layout sich ändert
+}
+
+// ── Status ──
+function renderNums(elId, nums, blink) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.innerHTML = (!nums || !nums.length)
+    ? '<span class="num-chip empty">—</span>'
+    : nums.map(n=>`<span class="num-chip${blink?' blink':''}">${n}</span>`).join('');
+}
+
+// ── Menü ──
+function renderMenuContent() {
+  const left  = document.getElementById('menuLeft');
+  const right = document.getElementById('menuRight');
+  if (!left || !right) return;
+  left.innerHTML = ''; right.innerHTML = '';
+  const currency = config.currency || '€';
+  menuData.forEach((cat, idx) => {
+    const sec = document.createElement('div');
+    sec.className = 'menu-section';
+    sec.innerHTML = `
+      <div class="section-title">${cat.name}</div>
+      <div>${(cat.items||[]).map(item=>`
+        <div class="menu-item">
+          <span class="mn">${item.number?item.number+'. ':''}${item.name}</span>
+          <span class="mp">${Number(item.price).toFixed(2).replace('.',',')} ${currency}</span>
+        </div>`).join('')}
+      </div>`;
+    (idx%2===0 ? left : right).appendChild(sec);
+  });
+}
+
+// ── Ads ──
+function updateAds(newAds, newCfg) {
+  ads   = (newAds||[]).filter(a=>a.active!==false);
+  adCfg = newCfg || adCfg;
+  const display  = document.getElementById('adDisplay');
+  const fallback = document.getElementById('adFallback');
+  if (!display) return;
+  clearAdTimer();
+  display.querySelectorAll('.ad-slide').forEach(s=>s.remove());
+  if (!ads.length) { if(fallback) fallback.style.display='flex'; return; }
+  if(fallback) fallback.style.display='none';
+  ads.forEach((ad,i)=>{
+    const slide=document.createElement('div');
+    slide.className='ad-slide';
+    slide.style.background=ad.bg_color||'#c8102e';
+    slide.style.color=ad.text_color||'#fff';
+    if(ad.type==='image'&&ad.image_url) {
+      slide.innerHTML=`${ad.title?`<div class="ad-title">${ad.title}</div>`:''}<img class="ad-image" src="${ad.image_url}" alt="">${ad.subtitle?`<div class="ad-subtitle">${ad.subtitle}</div>`:''}`;
+    } else {
+      slide.innerHTML=`${ad.title?`<div class="ad-title">${ad.title}</div>`:''}${ad.subtitle?`<div class="ad-subtitle">${ad.subtitle}</div>`:''}`;
+    }
+    display.appendChild(slide);
+  });
+  adIndex=0; showAd(0); startAdTimer();
+}
+function showAd(idx){ document.querySelectorAll('.ad-slide').forEach((s,i)=>s.classList.toggle('active',i===idx)); }
+function clearAdTimer(){ clearInterval(adTimer); adTimer=null; const bar=document.getElementById('adBar'); if(bar){bar.style.transition='none';bar.style.width='0%';} }
+function startAdTimer(){
+  clearAdTimer();
+  const dur=(adCfg.rotation_interval||8)*1000;
+  const bar=document.getElementById('adBar');
+  function prog(){ if(!bar)return; bar.style.transition='none'; bar.style.width='0%'; setTimeout(()=>{bar.style.transition=`width ${dur}ms linear`;bar.style.width='100%';},50); }
+  prog();
+  adTimer=setInterval(()=>{ adIndex=(adIndex+1)%ads.length; showAd(adIndex); prog(); },dur);
+}
+
+// ── Socket ──
+const socket = io(SERVER, { reconnectionDelay: 2000 });
+socket.on('connect',()=>{ const d=document.getElementById('connDot'); if(d) d.className='conn-dot on'; });
+socket.on('disconnect',()=>{ const d=document.getElementById('connDot'); if(d) d.className='conn-dot off'; });
+socket.on('current_status',data=>{ renderNums('processingNums',data.processing,false); renderNums('readyNums',data.ready,true); });
+socket.on('status_update', data=>{ renderNums('processingNums',data.processing,false); renderNums('readyNums',data.ready,true); });
+socket.on('config_update', cfg=>{
+  const needRebuild = cfg.display_layout && cfg.display_layout !== config.display_layout;
+  applyConfig(cfg);
+  if(needRebuild){ try{ zones=JSON.parse(cfg.display_layout); }catch(e){} buildLayout(); }
+});
+socket.on('ad_update', data=>updateAds(data.ads,data.config));
+
+// ── Init ──
+async function init() {
+  try {
+    const [cfg, menu, adsData] = await Promise.all([
+      fetch(`${SERVER}/api/monitor-config?monitor=${MONITOR_ID}`).then(r=>r.json()),
+      fetch(`${SERVER}/api/menu?monitor=${MONITOR_ID}`).then(r=>r.json()),
+      fetch(`${SERVER}/api/ads`).then(r=>r.json()),
+    ]);
+    config   = cfg;
+    menuData = menu;
+    ads      = adsData.ads||[];
+    adCfg    = adsData.config||adCfg;
+
+    if (cfg.displayLayout) {
+      try { zones = JSON.parse(cfg.displayLayout); } catch(e){}
+    }
+    document.documentElement.style.setProperty('--accent', cfg.accent_color||'#c8102e');
+    buildLayout();
+  } catch(e) {
+    console.error('Init-Fehler:', e);
+    buildLayout();
+  }
+}
+
+init();
+</script>
+</body>
+</html>

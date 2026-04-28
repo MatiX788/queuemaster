@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QueueMaster — Admin Login</title>
+<style>
+:root{
+  --bg:#0a0a0f; --bg2:#12121a; --bg3:#1a1a26; --bg4:#22222e;
+  --border:#2e2e42; --text:#e8e8f0; --muted:#666680;
+  --accent:#c8102e; --accent2:#e8203e;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Segoe UI',system-ui,Arial,sans-serif;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  background-image: radial-gradient(circle at 20% 50%, rgba(200,16,46,.08) 0%, transparent 50%),
+                    radial-gradient(circle at 80% 80%, rgba(200,16,46,.05) 0%, transparent 50%);
+}
+
+.login-box{
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:40px 32px;
+  width:100%;
+  max-width:400px;
+  box-shadow:0 20px 60px rgba(0,0,0,.5);
+}
+
+.logo-wrap{text-align:center;margin-bottom:28px}
+.logo-icon{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:64px;
+  height:64px;
+  background:var(--accent);
+  border-radius:16px;
+  font-size:32px;
+  margin-bottom:14px;
+  box-shadow:0 8px 20px rgba(200,16,46,.3);
+}
+h1{font-size:22px;font-weight:800;margin-bottom:4px}
+.sub{color:var(--muted);font-size:13px}
+
+.field{margin-bottom:16px}
+.field label{
+  display:block;font-size:11px;text-transform:uppercase;
+  letter-spacing:1px;color:var(--muted);font-weight:700;margin-bottom:6px
+}
+.field input{
+  width:100%;background:var(--bg3);color:var(--text);
+  border:1px solid var(--border);border-radius:10px;
+  padding:12px 14px;font-size:15px;font-family:inherit;
+  transition:border-color .15s
+}
+.field input:focus{outline:none;border-color:var(--accent)}
+
+.btn{
+  width:100%;background:var(--accent);color:#fff;border:none;
+  border-radius:10px;padding:13px;font-size:15px;font-weight:700;
+  cursor:pointer;transition:background .15s;margin-top:8px
+}
+.btn:hover{background:var(--accent2)}
+.btn:active{transform:scale(.98)}
+.btn:disabled{background:var(--bg4);color:var(--muted);cursor:wait}
+
+.error{
+  background:rgba(200,16,46,.1);
+  border:1px solid rgba(200,16,46,.3);
+  color:#f87171;
+  padding:10px 14px;border-radius:8px;
+  font-size:13px;margin-bottom:14px;display:none
+}
+.error.show{display:block}
+
+.hint{
+  text-align:center;margin-top:20px;
+  color:var(--muted);font-size:12px;line-height:1.7
+}
+.hint code{background:var(--bg3);padding:2px 7px;border-radius:5px;font-size:11px;color:#93c5fd}
+</style>
+</head>
+<body>
+
+<div class="login-box">
+  <div class="logo-wrap">
+    <div class="logo-icon">🔒</div>
+    <h1>QueueMaster Admin</h1>
+    <div class="sub">Bitte anmelden</div>
+  </div>
+
+  <div class="error" id="error"></div>
+
+  <form id="loginForm" onsubmit="doLogin(event)">
+    <div class="field">
+      <label>Passwort</label>
+      <input type="password" id="password" autocomplete="current-password" autofocus required>
+    </div>
+    <button type="submit" class="btn" id="loginBtn">Anmelden</button>
+  </form>
+
+  <div class="hint">
+    Standard-Passwort: <code>admin</code><br>
+    (bitte nach erstem Login ändern)
+  </div>
+</div>
+
+<script>
+async function doLogin(e) {
+  e.preventDefault();
+  const pwd = document.getElementById('password').value;
+  const errEl = document.getElementById('error');
+  const btn = document.getElementById('loginBtn');
+  errEl.classList.remove('show');
+  btn.disabled = true;
+  btn.textContent = 'Anmeldung...';
+
+  try {
+    const res = await fetch('/api/login', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ password: pwd })
+    });
+    const data = await res.json();
+    if (data.success && data.token) {
+      // Token als Cookie setzen (gilt 30 Tage)
+      const expires = new Date(Date.now() + 30*24*60*60*1000).toUTCString();
+      document.cookie = `qm_admin=${data.token}; expires=${expires}; path=/; SameSite=Lax`;
+      // Optional: zur ursprünglichen Seite zurück
+      const params = new URLSearchParams(window.location.search);
+      const redirect = params.get('redirect') || '/admin.html';
+      window.location.href = redirect;
+    } else {
+      errEl.textContent = data.error || 'Anmeldung fehlgeschlagen';
+      errEl.classList.add('show');
+      btn.disabled = false;
+      btn.textContent = 'Anmelden';
+      document.getElementById('password').value = '';
+      document.getElementById('password').focus();
+    }
+  } catch (err) {
+    errEl.textContent = 'Verbindungsfehler';
+    errEl.classList.add('show');
+    btn.disabled = false;
+    btn.textContent = 'Anmelden';
+  }
+}
+</script>
+</body>
+</html>

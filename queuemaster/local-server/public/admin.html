@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QueueMaster Admin</title>
+<style>
+:root{
+  --bg:#0a0a0f;--bg2:#12121a;--bg3:#1a1a26;--bg4:#22222e;--bg5:#2a2a38;
+  --border:#2e2e42;--text:#e8e8f0;--muted:#666680;
+  --accent:#c8102e;--accent2:#e8203e;
+  --green:#22c55e;--green2:#16a34a;--blue:#3b82f6;
+  --radius:12px;--radius-sm:8px;--shadow:0 4px 24px rgba(0,0,0,.5);--sw:220px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,Arial,sans-serif;font-size:14px;display:flex;flex-direction:column}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--bg5);border-radius:3px}
+
+.header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 20px;height:54px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:30px;height:30px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px}
+.logo-text{font-size:16px;font-weight:800}
+.logo-sub{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;margin-top:1px}
+.header-right{display:flex;align-items:center;gap:8px}
+.cpill{display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600}
+.cpill .dot{width:7px;height:7px;border-radius:50%;background:#555;transition:background .3s}
+.cpill .dot.on{background:var(--green);box-shadow:0 0 5px var(--green)}
+.cpill .dot.off{background:var(--accent)}
+.hbtn{background:var(--bg3);border:1px solid var(--border);color:var(--muted);padding:6px 12px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap}
+.hbtn:hover{color:var(--text);border-color:var(--muted)}
+
+.app{display:flex;flex:1;overflow:hidden}
+.sidebar{width:var(--sw);background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;padding:10px 0}
+.nav-lbl{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);padding:10px 18px 4px;font-weight:700}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 18px;cursor:pointer;font-weight:600;font-size:13px;color:var(--muted);border-left:2px solid transparent;transition:all .15s;user-select:none}
+.nav-item:hover{color:var(--text);background:var(--bg3)}
+.nav-item.active{color:var(--text);border-left-color:var(--accent);background:var(--bg3)}
+.nav-item .ic{width:16px;text-align:center;font-size:14px;flex-shrink:0}
+.sidebar-footer{margin-top:auto;padding:10px 14px;border-top:1px solid var(--border)}
+.qlink{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s}
+.qlink:hover{color:var(--text);background:var(--bg3)}
+.main{flex:1;overflow-y:auto;padding:24px}
+.page{display:none}.page.active{display:block}
+
+/* COMPONENTS */
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.sh-title{font-size:20px;font-weight:800}
+.sh-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:14px}
+.card-title{font-size:11px;font-weight:700;margin-bottom:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+.stat{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;position:relative;overflow:hidden}
+.stat::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--c,var(--accent))}
+.stat-n{font-size:34px;font-weight:900;line-height:1;margin-bottom:3px;color:var(--c,var(--accent))}
+.stat-l{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:700}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.frow.c1{grid-template-columns:1fr}.frow.c3{grid-template-columns:1fr 1fr 1fr}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:700}
+.field input,.field textarea,.field select{background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 11px;font-size:13px;font-family:inherit;transition:border-color .15s}
+.field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--accent)}
+.field textarea{resize:vertical}
+.btn{display:inline-flex;align-items:center;gap:6px;border:none;border-radius:var(--radius-sm);padding:8px 16px;font-weight:700;font-size:13px;cursor:pointer;transition:all .15s;user-select:none}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:var(--accent2)}
+.btn-green{background:var(--green2);color:#fff}
+.btn-blue{background:var(--blue);color:#fff}
+.btn-muted{background:var(--bg4);color:var(--muted);border:1px solid var(--border)}.btn-muted:hover{color:var(--text)}
+.btn-danger{background:#7f1d1d;color:#fca5a5;border:1px solid #991b1b}.btn-danger:hover{background:#991b1b}
+.btn-sm{padding:5px 10px;font-size:12px}.btn-xs{padding:3px 7px;font-size:11px;border-radius:5px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+
+/* MENU */
+.menu-cat{border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;overflow:hidden}
+.menu-cat-hdr{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:var(--bg3);cursor:pointer;user-select:none;gap:8px}
+.menu-cat-name{font-weight:700;font-size:14px}
+.menu-cat-body{padding:8px 14px 12px}
+.mi-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)}
+.mi-row:last-of-type{border:none}
+.mi-num{width:34px;font-size:12px;color:var(--muted)}
+.mi-name{flex:1;font-size:13px}
+.mi-price{width:70px;font-weight:700;text-align:right}
+.mi-btns{display:flex;gap:4px}
+.add-row{display:grid;grid-template-columns:50px 1fr 78px auto;gap:7px;margin-top:8px;align-items:end}
+.add-row input{background:var(--bg4);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:7px 9px;font-size:13px;font-family:inherit}
+.add-row input:focus{outline:none;border-color:var(--accent)}
+.cat-body-wrap{display:none}.cat-body-wrap.open{display:block}
+
+/* ── MONITORS ── */
+.monitor-card{border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px;overflow:hidden}
+.monitor-hdr{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--bg3)}
+.monitor-id-lbl{font-family:monospace;font-size:11px;color:var(--muted);margin-top:2px}
+.monitor-body{padding:16px}
+.url-display{background:var(--bg4);border:1px solid var(--border);border-radius:6px;padding:8px 12px;font-family:monospace;font-size:12px;color:#93c5fd;word-break:break-all;margin-bottom:14px}
+
+/* Category chip selector — FIXED */
+.cat-selector{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px;margin-bottom:10px}
+.cat-chip{
+  padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;
+  cursor:pointer;user-select:none;
+  border:2px solid var(--border);background:var(--bg4);color:var(--muted);
+  transition:all .15s;
+}
+.cat-chip:hover{border-color:var(--muted);color:var(--text)}
+.cat-chip.on{background:rgba(200,16,46,.2);border-color:var(--accent);color:#fff}
+.cat-chip.all-on{background:var(--bg5);border-color:var(--green);color:var(--green)}
+
+/* ── ADS ── */
+.ad-card{border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;overflow:hidden}
+.ad-hdr{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--bg3)}
+.ad-thumb{width:100px;height:60px;border-radius:7px;object-fit:cover;flex-shrink:0;background:var(--bg4)}
+.ad-thumb-video{width:100px;height:60px;border-radius:7px;flex-shrink:0;background:#000;display:flex;align-items:center;justify-content:center;font-size:24px}
+.ad-info{flex:1}
+.ad-name{font-weight:700;font-size:14px;margin-bottom:3px}
+.ad-meta{font-size:12px;color:var(--muted)}
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700}
+.badge-green{background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.3)}
+.badge-gray{background:var(--bg4);color:var(--muted);border:1px solid var(--border)}
+
+/* Cloud status in ads */
+.cloud-ad-banner{background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);border-radius:var(--radius);padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:12px}
+.cloud-dot-big{width:12px;height:12px;border-radius:50%;background:#555;flex-shrink:0}
+.cloud-dot-big.on{background:var(--blue);box-shadow:0 0 8px var(--blue)}
+
+/* ── LAYOUT EDITOR ── */
+.editor-grid{display:grid;grid-template-columns:1fr 300px;gap:18px;align-items:start}
+.preview-screen{background:#050508;border-radius:10px;overflow:hidden;border:2px solid var(--border);box-shadow:var(--shadow);aspect-ratio:16/9;position:sticky;top:0;display:flex;flex-direction:column}
+.pz{position:relative;overflow:hidden;flex-shrink:0;cursor:pointer}
+.pz.menu-zone{flex:1;min-height:0}
+.pz.disabled{opacity:.2;pointer-events:none}
+.pz-border{position:absolute;inset:2px;border-radius:4px;border:2px dashed currentColor;background:transparent;transition:background .2s}
+.pz.sel .pz-border{background:rgba(255,255,255,.07)}
+.pz-tag{position:absolute;top:3px;left:5px;font-size:clamp(6px,1vw,10px);font-weight:800;text-transform:uppercase;opacity:.85}
+.zones-list{display:flex;flex-direction:column;gap:7px}
+.zcard{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;cursor:grab;user-select:none;transition:border-color .2s}
+.zcard:active{cursor:grabbing}
+.zcard.dragging{opacity:.4}
+.zcard.drag-over{border-color:var(--accent);box-shadow:0 0 0 2px rgba(200,16,46,.2)}
+.zcard.sel{border-color:rgba(255,255,255,.2)}
+.zcard-top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.drag-ic{color:var(--muted);font-size:16px;cursor:grab;padding:0 2px}
+.z-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
+.z-name{font-weight:700;font-size:13px;flex:1}
+.z-auto{font-size:10px;background:rgba(59,130,246,.2);color:var(--blue);border:1px solid rgba(59,130,246,.3);padding:2px 6px;border-radius:10px;font-weight:700}
+.zctrl{display:flex;flex-direction:column;gap:7px}
+.zrow{display:flex;align-items:center;gap:8px}
+.zrow-lbl{font-size:11px;color:var(--muted);font-weight:700;width:68px;flex-shrink:0;text-transform:uppercase}
+input[type=range].zslider{flex:1;-webkit-appearance:none;height:4px;background:var(--bg5);border-radius:2px;cursor:pointer}
+input[type=range].zslider::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--accent);cursor:pointer}
+.zval{font-size:12px;font-weight:700;width:32px;text-align:right}
+.cpick-wrap{display:flex;align-items:center;gap:7px}
+.cpick-wrap input[type=color]{width:28px;height:26px;border:none;background:none;padding:0;cursor:pointer;border-radius:4px}
+.cpick-wrap input[type=text]{background:var(--bg4);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 7px;font-size:12px;font-family:monospace;width:76px}
+.cpick-wrap input[type=text]:focus{outline:none;border-color:var(--accent)}
+.toggle{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
+.toggle input{display:none}
+.toggle-track{width:38px;height:21px;border-radius:11px;background:var(--bg5);border:1px solid var(--border);position:relative;transition:background .2s;flex-shrink:0}
+.toggle input:checked+.toggle-track{background:var(--green2);border-color:var(--green2)}
+.toggle-thumb{position:absolute;top:2px;left:2px;width:15px;height:15px;border-radius:50%;background:#fff;transition:transform .2s}
+.toggle input:checked+.toggle-track .toggle-thumb{transform:translateX(17px)}
+.legend{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.legend-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--muted)}
+.legend-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+.info-box{background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.2);border-radius:var(--radius);padding:12px;font-size:12px;color:#93c5fd;line-height:1.7;margin-bottom:14px}
+
+.toast{position:fixed;bottom:22px;right:22px;background:var(--bg3);color:var(--text);padding:11px 18px;border-radius:var(--radius);font-weight:700;font-size:13px;border:1px solid var(--green2);box-shadow:var(--shadow);opacity:0;transition:opacity .3s;z-index:999;pointer-events:none}
+.toast.show{opacity:1}.toast.err{border-color:var(--accent)}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-icon">🎛️</div>
+    <div><div class="logo-text">QueueMaster</div><div class="logo-sub">Admin</div></div>
+  </div>
+  <div class="header-right">
+    <div class="cpill"><div class="dot off" id="connDot"></div><span id="connLabel">Nicht verbunden</span></div>
+    <button class="hbtn" onclick="window.open('/display.html','_blank')">📺 Display</button>
+    <button class="hbtn" onclick="window.open('/tablet.html','_blank')">📱 Tablet</button>
+    <button class="hbtn" onclick="changePassword()" title="Passwort ändern">🔑</button>
+    <button class="hbtn" onclick="doLogout()" title="Abmelden" style="background:rgba(200,16,46,.15);border-color:rgba(200,16,46,.3);color:#f87171">🚪 Abmelden</button>
+  </div>
+</div>
+
+<div class="app">
+  <div class="sidebar">
+    <div class="nav-lbl">Übersicht</div>
+    <div class="nav-item active" onclick="nav('dashboard',this)"><span class="ic">📊</span>Dashboard</div>
+    <div class="nav-lbl">Display</div>
+    <div class="nav-item" onclick="nav('monitors',this)"><span class="ic">📺</span>Monitore</div>
+    <div class="nav-item" onclick="nav('layout',this)"><span class="ic">🎨</span>Layout-Editor</div>
+    <div class="nav-item" onclick="nav('branding',this)"><span class="ic">✨</span>Design & Logo</div>
+    <div class="nav-lbl">Inhalt</div>
+    <div class="nav-item" onclick="nav('ads',this)"><span class="ic">📢</span>Werbung</div>
+    <div class="nav-item" onclick="nav('menu',this)"><span class="ic">🍕</span>Speisekarte</div>
+    <div class="nav-item" onclick="nav('tabletapp',this)"><span class="ic">📱</span>Tablet-App</div>
+    <div class="nav-item" onclick="nav('settings',this)"><span class="ic">⚙️</span>Einstellungen</div>
+    <div class="sidebar-footer">
+      <div class="qlink" onclick="doReset()">🔄 Tagesabschluss</div>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- ══ DASHBOARD ══ -->
+    <div class="page active" id="page-dashboard">
+      <div class="sh">
+        <div><div class="sh-title">Dashboard</div><div class="sh-sub">Tagesübersicht</div></div>
+        <button class="btn btn-muted btn-sm" onclick="loadStats()">↻</button>
+      </div>
+      <div class="stats-row">
+        <div class="stat" style="--c:#f59e0b"><div class="stat-n" id="s-today">—</div><div class="stat-l">Heute gesamt</div></div>
+        <div class="stat" style="--c:#3b82f6"><div class="stat-n" id="s-proc">—</div><div class="stat-l">In Bearbeitung</div></div>
+        <div class="stat" style="--c:#22c55e"><div class="stat-n" id="s-ready">—</div><div class="stat-l">Fertig</div></div>
+        <div class="stat" style="--c:#a78bfa"><div class="stat-n" id="s-umsatz">—</div><div class="stat-l">Umsatz</div></div>
+      </div>
+      <div class="card"><div class="card-title">🏆 Meistbestellt</div><div id="topItems" style="color:var(--muted);font-size:13px">Lädt...</div></div>
+    </div>
+
+    <!-- ══ MONITORE ══ -->
+    <div class="page" id="page-monitors">
+      <div class="sh">
+        <div><div class="sh-title">Monitore</div><div class="sh-sub">Jeden Monitor einzeln konfigurieren</div></div>
+        <button class="btn btn-primary" onclick="showAddMonitor()">+ Monitor hinzufügen</button>
+      </div>
+      <div class="info-box">
+        💡 Öffne die Display-URL auf dem jeweiligen Monitor-Browser.<br>
+        <strong>Menü-Zuweisung:</strong> Klicke auf Kategorien um sie diesem Monitor zuzuweisen. Wenn nichts ausgewählt ist, werden alle angezeigt.<br>
+        <strong>Overflow:</strong> Weise Monitor A z.B. „Döner + Pizza" zu, Monitor B „Vegetarisch + Extras" — so wird das Menü aufgeteilt.
+      </div>
+      <div id="addMonitorForm" style="display:none" class="card">
+        <div class="card-title">Neuer Monitor</div>
+        <div class="frow c3">
+          <div class="field"><label>Monitor-ID (eindeutig, kein Leerzeichen)</label><input type="text" id="nm-id" placeholder="monitor_B"></div>
+          <div class="field"><label>Name / Bezeichnung</label><input type="text" id="nm-name" placeholder="Monitor 2 (Eingang)"></div>
+          <div class="field"><label>Akzentfarbe (leer = global)</label><input type="text" id="nm-accent" placeholder="#c8102e"></div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary" onclick="addMonitor()">Anlegen</button>
+          <button class="btn btn-muted" onclick="document.getElementById('addMonitorForm').style.display='none'">Abbrechen</button>
+        </div>
+      </div>
+      <div id="monitorList"></div>
+    </div>
+
+    <!-- ══ LAYOUT EDITOR ══ -->
+    <div class="page" id="page-layout">
+      <div class="sh">
+        <div><div class="sh-title">Layout-Editor</div><div class="sh-sub">Zonen per Drag & Drop · Größe · Farben · An/Ausschalten</div></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select id="layoutMonitorSel" style="background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:13px" onchange="loadLayoutForMonitor(this.value)">
+            <option value="">Global (alle Monitore)</option>
+          </select>
+          <button class="btn btn-primary" onclick="saveLayout()">💾 Speichern</button>
+        </div>
+      </div>
+      <div class="editor-grid">
+        <div>
+          <div class="card"><div class="card-title">Zonen verwalten</div><div class="zones-list" id="zonesList"></div></div>
+          <div class="info-box">💡 <strong>Speisekarte</strong> füllt den verbleibenden Platz automatisch. Schalte Zonen aus — ihr Platz wird von der Speisekarte übernommen. Werbung & Lauftext kannst du hier aus- und einschalten.</div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px">📺 Vorschau</div>
+          <div class="preview-screen" id="previewScreen"></div>
+          <div class="legend" id="legend"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ BRANDING ══ -->
+    <div class="page" id="page-branding">
+      <div class="sh"><div><div class="sh-title">Design & Logo</div><div class="sh-sub">Branding für alle Displays</div></div></div>
+      <div class="card">
+        <div class="card-title">🏪 Geschäft</div>
+        <div class="frow">
+          <div class="field"><label>Geschäftsname</label><input type="text" id="cfg-store_name" placeholder="Mein Restaurant"></div>
+          <div class="field"><label>Währung</label><input type="text" id="cfg-currency" placeholder="€" style="max-width:80px"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">🖼️ Logo</div>
+        <div class="frow c1"><div class="field"><label>Logo URL</label><input type="text" id="cfg-logo_url" placeholder="https://mein-restaurant.de/logo.png oder Base64"></div></div>
+        <div style="margin-top:10px;display:flex;align-items:center;gap:12px">
+          <div id="logoPreview" style="width:120px;height:50px;background:var(--bg4);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden"><span style="color:var(--muted);font-size:12px">Vorschau</span></div>
+          <button class="btn btn-muted btn-sm" onclick="previewLogo()">Vorschau laden</button>
+          <input type="file" id="logoFile" accept="image/*" style="display:none" onchange="handleLogoFile(this)">
+          <button class="btn btn-muted btn-sm" onclick="document.getElementById('logoFile').click()">📁 Datei wählen</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">🎨 Akzentfarbe</div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <input type="color" id="cfg-accent_pick" value="#c8102e" style="width:44px;height:38px;border:none;background:none;padding:0;cursor:pointer;border-radius:6px">
+          <div class="field" style="max-width:130px;margin:0"><input type="text" id="cfg-accent" placeholder="#c8102e" style="font-family:monospace"></div>
+          <div id="accentPreview" style="width:72px;height:38px;border-radius:7px;background:#c8102e;transition:background .2s"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">📝 Lauftext (Ticker)</div>
+        <div class="field"><textarea id="cfg-ticker_text" rows="3" placeholder="Willkommen! Bitte behalten Sie Ihre Bestellnummer im Blick..."></textarea></div>
+      </div>
+      <div class="actions"><button class="btn btn-primary" onclick="saveBranding()">💾 Speichern & Anwenden</button></div>
+    </div>
+
+    <!-- ══ WERBUNG ══ -->
+    <div class="page" id="page-ads">
+      <div class="sh">
+        <div><div class="sh-title">Werbung</div><div class="sh-sub">Bilder & Videos auf dem Display</div></div>
+        <button class="btn btn-primary" onclick="openAdForm()">+ Anzeige hinzufügen</button>
+      </div>
+
+      <!-- Cloud-Status Banner -->
+      <div class="cloud-ad-banner">
+        <div class="cloud-dot-big" id="cloudAdDot"></div>
+        <div>
+          <div style="font-weight:700;font-size:13px" id="cloudAdStatus">Cloud-Server: Nicht verbunden</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">
+            Wenn der Cloud-Server verbunden ist, übernimmt er automatisch die Werbung per Fernsteuerung (zweiter Socket).
+            Lokale Anzeigen werden dann als Fallback verwendet.
+          </div>
+        </div>
+      </div>
+
+      <!-- Ad Form -->
+      <div id="adFormBox" style="display:none" class="card">
+        <div class="card-title" id="adFormTitle">Neue Anzeige</div>
+        <input type="hidden" id="af-id">
+        <div class="frow">
+          <div class="field">
+            <label>Typ</label>
+            <select id="af-type" onchange="onAdTypeChange()">
+              <option value="image">🖼️ Bild</option>
+              <option value="video">🎬 Video</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Dauer / Anzeigezeit (Sekunden)</label>
+            <input type="number" id="af-duration" value="10" min="2" max="120">
+          </div>
+        </div>
+        <!-- Bild -->
+        <div id="af-image-section">
+          <div class="field" style="margin-bottom:10px">
+            <label>Bild-URL</label>
+            <input type="text" id="af-image_url" placeholder="https://example.com/werbung.jpg" oninput="updateAdPreview()">
+          </div>
+          <input type="file" id="af-image-file" accept="image/*" style="display:none" onchange="handleAdImageFile(this)">
+          <button class="btn btn-muted btn-sm" style="margin-bottom:10px" onclick="document.getElementById('af-image-file').click()">📁 Bild-Datei hochladen</button>
+          <div id="af-img-preview" style="display:none;margin-bottom:10px">
+            <img id="af-img-preview-el" style="max-height:120px;max-width:100%;border-radius:8px;object-fit:contain;background:#000" src="" alt="">
+          </div>
+        </div>
+        <!-- Video -->
+        <div id="af-video-section" style="display:none">
+          <div class="field" style="margin-bottom:10px">
+            <label>Video-URL (MP4, WebM oder YouTube-Embed-URL)</label>
+            <input type="text" id="af-video_url" placeholder="https://example.com/video.mp4" oninput="updateAdPreview()">
+          </div>
+          <input type="file" id="af-video-file" accept="video/*" style="display:none" onchange="handleAdVideoFile(this)">
+          <button class="btn btn-muted btn-sm" style="margin-bottom:10px" onclick="document.getElementById('af-video-file').click()">📁 Video-Datei hochladen</button>
+          <div id="af-vid-preview" style="display:none;margin-bottom:10px">
+            <video id="af-vid-preview-el" style="max-height:120px;max-width:100%;border-radius:8px" controls muted></video>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary" onclick="saveAd()">💾 Speichern & auf Display pushen</button>
+          <button class="btn btn-muted" onclick="closeAdForm()">Abbrechen</button>
+        </div>
+      </div>
+
+      <div id="adsList"></div>
+    </div>
+
+    <!-- ══ SPEISEKARTE ══ -->
+    <div class="page" id="page-menu">
+      <div class="sh">
+        <div><div class="sh-title">Speisekarte</div><div class="sh-sub">Kategorien und Artikel</div></div>
+        <button class="btn btn-primary" onclick="toggleAddCat()">+ Kategorie</button>
+      </div>
+      <div id="addCatBox" style="display:none" class="card">
+        <div style="display:flex;gap:10px;align-items:flex-end">
+          <div class="field" style="flex:1;margin:0"><label>Name</label><input type="text" id="newCatName" placeholder="z.B. Döner, Pizza, Extras..."></div>
+          <button class="btn btn-green" onclick="addCategory()">+ Hinzufügen</button>
+          <button class="btn btn-muted" onclick="document.getElementById('addCatBox').style.display='none'">Abbrechen</button>
+        </div>
+      </div>
+      <div id="menuList"></div>
+    </div>
+
+    <!-- ══ TABLET-APP ══ -->
+    <div class="page" id="page-tabletapp">
+      <div class="sh"><div><div class="sh-title">Tablet-App</div><div class="sh-sub">APK zum Installieren auf Android-Tablets</div></div></div>
+
+      <div class="card">
+        <div class="card-title">📦 App-Status</div>
+        <div id="apkStatus" style="font-size:14px;color:var(--muted)">Prüfe...</div>
+      </div>
+
+      <div class="card" id="apkAvailableCard" style="display:none">
+        <div class="card-title">📥 Download-Link für das Tablet</div>
+        <p style="color:var(--muted);font-size:13px;margin-bottom:14px;line-height:1.6">
+          Öffne diese URL im Chrome-Browser auf dem Tablet. Die APK wird heruntergeladen und kann installiert werden.
+        </p>
+        <div id="downloadUrlBox" style="background:var(--bg4);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:monospace;font-size:13px;color:#93c5fd;word-break:break-all;margin-bottom:12px"></div>
+        <div class="actions">
+          <button class="btn btn-primary" onclick="copyDownloadUrl()">📋 URL kopieren</button>
+          <a id="apkDirectDownload" class="btn btn-green" href="/downloads/QueueMaster.apk" download>⬇️ APK hier runterladen</a>
+          <a class="btn btn-muted" href="/app.html" target="_blank">🌐 Download-Seite öffnen</a>
+        </div>
+      </div>
+
+      <div class="card" id="apkMissingCard" style="display:none">
+        <div class="card-title" style="color:#fb923c">⚠️ APK noch nicht verfügbar</div>
+        <p style="color:var(--muted);font-size:13px;line-height:1.7;margin-bottom:14px">
+          Die Tablet-App muss erst gebaut werden. Mit <strong>GitHub Actions</strong> passiert das automatisch in der Cloud — du musst nichts installieren.
+        </p>
+        <div style="background:var(--bg4);border-radius:10px;padding:16px;font-size:13px;line-height:1.8;color:#ddd">
+          <strong style="color:var(--accent)">🚀 Schritt-für-Schritt:</strong>
+          <ol style="padding-left:20px;margin-top:10px">
+            <li>GitHub-Account erstellen (kostenlos): <a href="https://github.com/signup" target="_blank" style="color:#93c5fd">github.com/signup</a></li>
+            <li>Neues Repository anlegen (z.B. "queuemaster")</li>
+            <li>Das komplette Projekt hochladen (Ordner per Drag & Drop in GitHub)</li>
+            <li>GitHub baut automatisch die APK — warte 3-5 Minuten</li>
+            <li>Unter <strong>Actions</strong> oder <strong>Releases</strong> → APK herunterladen</li>
+            <li>APK hier ablegen: <code style="background:var(--bg5);padding:2px 6px;border-radius:4px">local-server/public/downloads/QueueMaster.apk</code></li>
+          </ol>
+        </div>
+        <div style="margin-top:14px;padding:12px;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);border-radius:8px;font-size:12px;color:#93c5fd;line-height:1.6">
+          💡 Ausführliche Anleitung: siehe <strong>APK_BAUEN.md</strong> im Projektordner
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📱 So installiert der Mitarbeiter die App</div>
+        <ol style="padding-left:20px;font-size:14px;line-height:1.8;color:#ddd">
+          <li>Am Tablet im Chrome-Browser die Download-URL öffnen</li>
+          <li>„APK herunterladen" antippen</li>
+          <li>Bei der Warnung „Unbekannte Apps zulassen" → <strong>Erlauben</strong></li>
+          <li>„Installieren" antippen</li>
+          <li>App öffnen → Server-IP eingeben (z.B. <code style="background:var(--bg4);padding:2px 6px;border-radius:4px">http://192.168.1.100:3000</code>)</li>
+          <li>Fertig — läuft als richtige App im Vollbild</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- ══ EINSTELLUNGEN ══ -->
+    <div class="page" id="page-settings">
+      <div class="sh"><div><div class="sh-title">Einstellungen</div></div></div>
+      <div class="card">
+        <div class="card-title">⏱ Limits</div>
+        <div class="frow c3">
+          <div class="field"><label>Max. "In Bearbeitung"</label><input type="number" id="cfg-max_processing" min="1" max="50"></div>
+          <div class="field"><label>Max. "Fertig"</label><input type="number" id="cfg-max_ready" min="1" max="50"></div>
+          <div class="field"><label>Timeout (Minuten)</label><input type="number" id="cfg-order_timeout" min="1" max="120"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">☁️ Cloud-Server (Fernsteuerung der Werbung)</div>
+        <div class="info-box" style="margin-bottom:12px">
+          🌐 <strong>Wie funktioniert die Fernsteuerung?</strong><br>
+          Der lokale Server baut beim Start automatisch eine zweite Verbindung (Socket) zum Cloud-Server auf.
+          Über diesen Kanal schickt der Cloud-Admin Werbeanzeigen direkt auf alle Displays — ohne dass jemand vor Ort sein muss.
+          Bestelldaten bleiben immer lokal und funktionieren auch ohne Internet.
+        </div>
+        <div class="frow">
+          <div class="field"><label>Cloud-Server URL</label><input type="text" id="cfg-cloud_url" placeholder="https://cloud.queuemaster.de"></div>
+          <div class="field"><label>Monitor-ID für Cloud</label><input type="text" id="cfg-cloud_monitor_id" placeholder="store01_screen_a"></div>
+        </div>
+      </div>
+      <div class="actions"><button class="btn btn-primary" onclick="saveSettings()">💾 Speichern</button></div>
+    </div>
+
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+<script>
+const SERVER = window.location.origin;
+let config   = {};
+let menu     = [];
+let monitors = [];
+let localAds = [];
+let currency = '€';
+let dragSrc  = null;
+
+// Monitor-spezifischer Zustand: { monitorId: Set<categoryId (number)> }
+const monitorCatState = {};
+
+const ZONE_DEFAULTS = [
+  { id:'header', label:'Titel',             color:'#e879f9', bg:'#0f050f', height:10,  visible:true },
+  { id:'status', label:'Bearbeitung/Fertig',color:'#4ade80', bg:'#050f05', height:24,  visible:true },
+  { id:'menu',   label:'Speisekarte',       color:'#818cf8', bg:'#05050f', height:null,visible:true, isAuto:true },
+  { id:'ads',    label:'Werbung',           color:'#fb923c', bg:'#0f0800', height:20,  visible:true },
+  { id:'ticker', label:'Lauftext',          color:'#a78bfa', bg:'#080010', height:6,   visible:true },
+];
+let zones = JSON.parse(JSON.stringify(ZONE_DEFAULTS));
+let currentLayoutMonitor = '';
+
+// ════════════════════════════════
+// UTILS
+// ════════════════════════════════
+function toast(msg, isErr=false) {
+  const t=document.getElementById('toast'); t.textContent=msg;
+  t.className='toast show'+(isErr?' err':''); setTimeout(()=>t.className='toast',2800);
+}
+function fmt(n) { return Number(n).toFixed(2).replace('.',','); }
+async function api(url, method='GET', body=null) {
+  const opts={method,headers:{'Content-Type':'application/json'}};
+  if(body) opts.body=JSON.stringify(body);
+  return (await fetch(SERVER+url,opts)).json();
+}
+function nav(name, el) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  el.classList.add('active');
+  if(name==='dashboard') loadStats();
+  if(name==='monitors')  renderMonitorPage();
+  if(name==='layout')    initLayoutPage();
+  if(name==='branding')  loadBrandingFields();
+  if(name==='ads')       renderAdsPage();
+  if(name==='menu')      renderMenu();
+  if(name==='tabletapp') loadApkInfo();
+  if(name==='settings')  loadSettingsFields();
+}
+
+async function loadApkInfo() {
+  try {
+    const data = await api('/api/apk-info');
+    const statusEl = document.getElementById('apkStatus');
+    const availCard = document.getElementById('apkAvailableCard');
+    const missingCard = document.getElementById('apkMissingCard');
+
+    if (data.available) {
+      const dl = window.location.origin + '/downloads/QueueMaster.apk';
+      statusEl.innerHTML = `<span style="color:var(--green);font-weight:700">✓ APK verfügbar</span> — ${data.sizeMB} MB, aktualisiert: ${new Date(data.modified).toLocaleString('de-DE')}`;
+      document.getElementById('downloadUrlBox').textContent = window.location.origin + '/app.html';
+      availCard.style.display = 'block';
+      missingCard.style.display = 'none';
+    } else {
+      statusEl.innerHTML = '<span style="color:#fb923c;font-weight:700">⚠️ APK noch nicht gebaut</span>';
+      availCard.style.display = 'none';
+      missingCard.style.display = 'block';
+    }
+  } catch(e) { console.error(e); }
+}
+
+function copyDownloadUrl() {
+  const url = document.getElementById('downloadUrlBox').textContent;
+  navigator.clipboard.writeText(url).then(() => toast('URL kopiert ✓'));
+}
+
+// ════════════════════════════════
+// DASHBOARD
+// ════════════════════════════════
+async function loadStats() {
+  try {
+    const s = await api('/api/stats');
+    document.getElementById('s-today').textContent = s.todayTotal;
+    document.getElementById('s-proc').textContent  = s.processing;
+    document.getElementById('s-ready').textContent = s.ready;
+    document.getElementById('s-umsatz').textContent = fmt(s.umsatz||0)+' '+(config.currency||'€');
+    const el = document.getElementById('topItems');
+    el.innerHTML = s.topItems?.length
+      ? s.topItems.map((item,i)=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);${i===s.topItems.length-1?'border:none':''}"><span>${item.name}</span><span style="color:var(--accent);font-weight:700">${item.count}×</span></div>`).join('')
+      : '<span style="color:var(--muted)">Noch keine Bestellungen</span>';
+  } catch(e) {}
+}
+async function doReset() {
+  if(!confirm('Tagesabschluss?')) return;
+  await api('/api/reset','POST'); toast('Tagesabschluss ✓'); loadStats();
+}
+
+// ════════════════════════════════
+// MONITORE — FIXED CATEGORY CHIPS
+// ════════════════════════════════
+function showAddMonitor() {
+  const f=document.getElementById('addMonitorForm');
+  f.style.display = f.style.display==='none' ? 'block' : 'none';
+}
+
+async function addMonitor() {
+  const id     = document.getElementById('nm-id').value.trim().replace(/\s+/g,'_');
+  const name   = document.getElementById('nm-name').value.trim();
+  const accent = document.getElementById('nm-accent').value.trim();
+  if(!id||!name) { toast('ID und Name erforderlich',true); return; }
+  const r = await api('/api/monitors','POST',{id,name,categoryIds:[],accent_color:accent});
+  if(r.error) { toast(r.error,true); return; }
+  monitors.push(r);
+  monitorCatState[r.id] = new Set(); // leer = alle
+  document.getElementById('nm-id').value='';
+  document.getElementById('nm-name').value='';
+  document.getElementById('nm-accent').value='';
+  document.getElementById('addMonitorForm').style.display='none';
+  renderMonitorPage();
+  updateLayoutMonitorSel();
+  toast('Monitor angelegt ✓');
+}
+
+async function deleteMonitor(id) {
+  if(!confirm('Monitor löschen?')) return;
+  await api(`/api/monitors/${id}`,'DELETE');
+  monitors = monitors.filter(m=>m.id!==id);
+  delete monitorCatState[id];
+  renderMonitorPage();
+  updateLayoutMonitorSel();
+  toast('Gelöscht');
+}
+
+// Kategorie-Chip für einen Monitor umschalten
+function toggleMonitorCat(monId, catId) {
+  const state = monitorCatState[monId];
+  if(!state) return;
+  const activeCats = menu.filter(c=>c.active!==false);
+
+  if (catId === 'all') {
+    // "Alle" klicken → alle abwählen (= alle anzeigen)
+    state.clear();
+  } else {
+    if (state.has(catId)) {
+      state.delete(catId);
+    } else {
+      state.add(catId);
+    }
+    // Wenn alle einzeln ausgewählt → gleich wie "alle"
+    if (state.size === activeCats.length) state.clear();
+  }
+  // UI aktualisieren
+  updateCatChipsUI(monId);
+}
+
+function updateCatChipsUI(monId) {
+  const state = monitorCatState[monId];
+  const allChip = document.getElementById(`chip-all-${monId}`);
+  const isAll = state.size === 0;
+
+  if(allChip) allChip.classList.toggle('all-on', isAll);
+
+  menu.filter(c=>c.active!==false).forEach(cat => {
+    const chip = document.getElementById(`chip-${monId}-${cat.id}`);
+    if(chip) chip.classList.toggle('on', state.has(cat.id));
+  });
+}
+
+async function saveMonitorCats(monId) {
+  const state = monitorCatState[monId];
+  const categoryIds = state.size === 0 ? [] : Array.from(state);
+  await api(`/api/monitors/${monId}`,'PATCH',{categoryIds});
+  const m = monitors.find(m=>m.id===monId); if(m) m.categoryIds=categoryIds;
+  toast('Kategorien gespeichert ✓');
+}
+
+async function saveMonitorOptions(monId) {
+  const nameEl   = document.getElementById(`mon-name-${monId}`);
+  const accentEl = document.getElementById(`mon-accent-${monId}`);
+  const name     = nameEl?.value || '';
+  const accent   = accentEl?.value || '';
+  await api(`/api/monitors/${monId}`,'PATCH',{name,accent_color:accent});
+  const m = monitors.find(m=>m.id===monId);
+  if(m) { m.name=name; m.accent_color=accent; }
+  toast('Gespeichert ✓');
+}
+
+function renderMonitorPage() {
+  const list = document.getElementById('monitorList');
+  list.innerHTML = '';
+  const activeCats = menu.filter(c=>c.active!==false);
+
+  if(!monitors.length) {
+    list.innerHTML=`<div style="text-align:center;color:var(--muted);padding:40px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius)">Noch keine weiteren Monitore.<br>Monitor A wurde automatisch angelegt.</div>`;
+    return;
+  }
+
+  monitors.forEach(mon => {
+    // Zustand initialisieren wenn noch nicht vorhanden
+    if(!monitorCatState[mon.id]) {
+      const ids = (mon.categoryIds||[]).map(Number);
+      monitorCatState[mon.id] = new Set(ids);
+    }
+
+    const state = monitorCatState[mon.id];
+    const url   = `${SERVER}/display.html?monitor=${mon.id}`;
+    const div   = document.createElement('div');
+    div.className = 'monitor-card';
+
+    div.innerHTML = `
+      <div class="monitor-hdr">
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:15px">${mon.name}</div>
+          <div class="monitor-id-lbl">ID: ${mon.id}</div>
+        </div>
+        <button class="btn btn-blue btn-sm" onclick="window.open('${url}','_blank')">📺 Öffnen</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteMonitor('${mon.id}')">🗑</button>
+      </div>
+      <div class="monitor-body">
+
+        <div class="url-display">${url}</div>
+
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">
+          Menü-Kategorien — <span style="color:var(--blue)">${state.size===0?'Alle anzeigen':state.size+' Kategorien ausgewählt'}</span>
+        </div>
+        <div class="cat-selector" id="cats-${mon.id}">
+          <div class="cat-chip ${state.size===0?'all-on':''}" id="chip-all-${mon.id}"
+               onclick="toggleMonitorCat('${mon.id}','all')">
+            ✦ Alle
+          </div>
+          ${activeCats.map(cat=>`
+            <div class="cat-chip ${state.has(cat.id)?'on':''}" id="chip-${mon.id}-${cat.id}"
+                 onclick="toggleMonitorCat('${mon.id}',${cat.id})">
+              ${cat.name}
+            </div>`).join('')}
+        </div>
+        <button class="btn btn-green btn-sm" style="margin-bottom:16px" onclick="saveMonitorCats('${mon.id}')">
+          💾 Kategorien speichern
+        </button>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="field">
+            <label>Monitor-Name</label>
+            <input type="text" id="mon-name-${mon.id}" value="${mon.name}">
+          </div>
+          <div class="field">
+            <label>Akzentfarbe (leer = global)</label>
+            <input type="text" id="mon-accent-${mon.id}" value="${mon.accent_color||''}" placeholder="${config.accent_color||'#c8102e'}">
+          </div>
+        </div>
+        <button class="btn btn-primary btn-sm" style="margin-top:10px" onclick="saveMonitorOptions('${mon.id}')">
+          💾 Optionen speichern
+        </button>
+      </div>`;
+    list.appendChild(div);
+  });
+}
+
+// ════════════════════════════════
+// LAYOUT EDITOR
+// ════════════════════════════════
+function initLayoutPage() {
+  updateLayoutMonitorSel();
+  renderEditor();
+}
+function updateLayoutMonitorSel() {
+  const sel = document.getElementById('layoutMonitorSel');
+  if(!sel) return;
+  const val = sel.value;
+  sel.innerHTML = '<option value="">Global (alle Monitore)</option>';
+  monitors.forEach(m=>{ const o=document.createElement('option'); o.value=m.id; o.textContent=m.name; sel.appendChild(o); });
+  if(monitors.find(m=>m.id===val)) sel.value=val;
+}
+function loadLayoutForMonitor(monId) {
+  currentLayoutMonitor = monId;
+  let layoutStr = '';
+  if(monId) { const m=monitors.find(m=>m.id===monId); layoutStr=m?.displayLayout||''; }
+  else layoutStr = config.display_layout||'';
+  if(layoutStr) { try{ zones=JSON.parse(layoutStr); }catch(e){ zones=JSON.parse(JSON.stringify(ZONE_DEFAULTS)); } }
+  else zones=JSON.parse(JSON.stringify(ZONE_DEFAULTS));
+  renderEditor();
+}
+function renderEditor() { renderPreview(); renderZoneCards(); renderLegend(); }
+function renderPreview() {
+  const screen=document.getElementById('previewScreen'); screen.innerHTML='';
+  zones.forEach(z=>{
+    const div=document.createElement('div');
+    div.className='pz'+(z.isAuto?' menu-zone':'')+(z.visible?'':' disabled');
+    div.dataset.id=z.id; div.style.color=z.color;
+    if(!z.isAuto&&z.visible) div.style.height=(z.height||10)+'%';
+    const border=document.createElement('div'); border.className='pz-border';
+    border.style.borderColor=z.color; border.style.background=(z.bg||'#000')+'cc';
+    const tag=document.createElement('div'); tag.className='pz-tag'; tag.style.color=z.color; tag.textContent=z.label;
+    border.appendChild(tag); div.appendChild(border);
+    div.onclick=()=>selectZone(z.id); screen.appendChild(div);
+  });
+}
+function renderZoneCards() {
+  const list=document.getElementById('zonesList'); list.innerHTML='';
+  zones.forEach((z,idx)=>{
+    const card=document.createElement('div');
+    card.className='zcard'; card.id='zc-'+z.id; card.draggable=true; card.dataset.idx=idx;
+    card.addEventListener('dragstart',e=>{dragSrc=card;card.classList.add('dragging');e.dataTransfer.effectAllowed='move';});
+    card.addEventListener('dragend',()=>{document.querySelectorAll('.zcard').forEach(c=>c.classList.remove('dragging','drag-over'));dragSrc=null;});
+    card.addEventListener('dragover',e=>{e.preventDefault();if(card!==dragSrc)card.classList.add('drag-over');});
+    card.addEventListener('dragleave',()=>card.classList.remove('drag-over'));
+    card.addEventListener('drop',e=>{e.stopPropagation();card.classList.remove('drag-over');if(!dragSrc||dragSrc===card)return;const fi=parseInt(dragSrc.dataset.idx),ti=parseInt(card.dataset.idx);const moved=zones.splice(fi,1)[0];zones.splice(ti,0,moved);renderEditor();});
+    card.innerHTML=`
+      <div class="zcard-top">
+        <span class="drag-ic">⠿</span>
+        <div class="z-dot" style="background:${z.color}"></div>
+        <span class="z-name">${z.label}</span>
+        ${z.isAuto?'<span class="z-auto">AUTO</span>':''}
+        <label class="toggle" style="margin-left:auto" onclick="event.stopPropagation()">
+          <input type="checkbox" ${z.visible?'checked':''} onchange="setZoneVisible('${z.id}',this.checked)">
+          <div class="toggle-track"><div class="toggle-thumb"></div></div>
+        </label>
+      </div>
+      <div class="zctrl">
+        ${!z.isAuto?`<div class="zrow"><span class="zrow-lbl">Höhe</span><input type="range" class="zslider" min="4" max="45" value="${z.height||10}" oninput="setZoneH('${z.id}',+this.value)"><span class="zval" id="zv-${z.id}">${z.height||10}%</span></div>`
+        :`<div class="zrow" style="color:var(--muted);font-size:12px"><span class="zrow-lbl">Höhe</span><span>Füllt verbleibenden Platz</span></div>`}
+        <div class="zrow"><span class="zrow-lbl">Rahmen</span><div class="cpick-wrap"><input type="color" value="${z.color}" oninput="setZoneCol('${z.id}','color',this.value);document.getElementById('ct-c-${z.id}').value=this.value"><input type="text" id="ct-c-${z.id}" value="${z.color}" oninput="setZoneCol('${z.id}','color',this.value)"></div></div>
+        <div class="zrow"><span class="zrow-lbl">Hintergrund</span><div class="cpick-wrap"><input type="color" value="${z.bg}" oninput="setZoneCol('${z.id}','bg',this.value);document.getElementById('ct-b-${z.id}').value=this.value"><input type="text" id="ct-b-${z.id}" value="${z.bg}" oninput="setZoneCol('${z.id}','bg',this.value)"></div></div>
+      </div>`;
+    list.appendChild(card);
+  });
+}
+function renderLegend() {
+  document.getElementById('legend').innerHTML=zones.filter(z=>z.visible).map(z=>`<div class="legend-item"><span class="legend-dot" style="background:${z.color}"></span>${z.label}</div>`).join('');
+}
+function selectZone(id) {
+  document.querySelectorAll('.zcard').forEach(c=>c.classList.remove('sel'));
+  document.querySelectorAll('.pz').forEach(p=>p.classList.remove('sel'));
+  const card=document.getElementById('zc-'+id), pz=document.querySelector(`.pz[data-id="${id}"]`);
+  if(card){card.classList.add('sel');card.scrollIntoView({behavior:'smooth',block:'nearest'});}
+  if(pz) pz.classList.add('sel');
+}
+function setZoneVisible(id,val){const z=zones.find(z=>z.id===id);if(z){z.visible=val;renderPreview();renderLegend();}}
+function setZoneH(id,val){const z=zones.find(z=>z.id===id);if(z){z.height=val;const el=document.getElementById('zv-'+id);if(el)el.textContent=val+'%';renderPreview();}}
+function setZoneCol(id,key,val){const z=zones.find(z=>z.id===id);if(z){z[key]=val;renderPreview();}}
+async function saveLayout() {
+  const layoutJson=JSON.stringify(zones);
+  if(currentLayoutMonitor){
+    await api(`/api/monitors/${currentLayoutMonitor}`,'PATCH',{displayLayout:layoutJson});
+    const m=monitors.find(m=>m.id===currentLayoutMonitor);if(m) m.displayLayout=layoutJson;
+    toast(`Layout für "${m?.name}" gespeichert ✓`);
+  } else {
+    await api('/api/config','PATCH',{display_layout:layoutJson});
+    config.display_layout=layoutJson;
+    toast('Globales Layout gespeichert ✓');
+  }
+}
+
+// ════════════════════════════════
+// BRANDING
+// ════════════════════════════════
+function loadBrandingFields() {
+  ['store_name','currency','ticker_text','logo_url'].forEach(k=>{
+    const el=document.getElementById('cfg-'+k); if(el) el.value=config[k]||'';
+  });
+  const col=config.accent_color||'#c8102e';
+  document.getElementById('cfg-accent').value=col;
+  document.getElementById('cfg-accent_pick').value=col;
+  document.getElementById('accentPreview').style.background=col;
+  if(config.logo_url) previewLogo();
+}
+document.getElementById('cfg-accent_pick').addEventListener('input',e=>{
+  document.getElementById('cfg-accent').value=e.target.value;
+  document.getElementById('accentPreview').style.background=e.target.value;
+});
+document.getElementById('cfg-accent').addEventListener('input',e=>{
+  if(/^#[0-9a-f]{6}$/i.test(e.target.value)){
+    document.getElementById('cfg-accent_pick').value=e.target.value;
+    document.getElementById('accentPreview').style.background=e.target.value;
+  }
+});
+function previewLogo() {
+  const url=document.getElementById('cfg-logo_url').value;
+  const prev=document.getElementById('logoPreview');
+  if(!url){prev.innerHTML='<span style="color:var(--muted);font-size:12px">Vorschau</span>';return;}
+  prev.innerHTML=`<img src="${url}" style="max-height:44px;max-width:112px;object-fit:contain" onerror="this.parentElement.innerHTML='<span style=color:var(--muted)>Fehler</span>'">`;
+}
+function handleLogoFile(input) {
+  const file=input.files[0]; if(!file) return;
+  const r=new FileReader();
+  r.onload=e=>{ document.getElementById('cfg-logo_url').value=e.target.result; previewLogo(); };
+  r.readAsDataURL(file);
+}
+async function saveBranding() {
+  const data={store_name:document.getElementById('cfg-store_name').value,currency:document.getElementById('cfg-currency').value,ticker_text:document.getElementById('cfg-ticker_text').value,accent_color:document.getElementById('cfg-accent').value,logo_url:document.getElementById('cfg-logo_url').value};
+  await api('/api/config','PATCH',data);
+  Object.assign(config,data); currency=data.currency;
+  toast('Design gespeichert & angewendet ✓');
+}
+
+// ════════════════════════════════
+// WERBUNG — nur Bild & Video
+// ════════════════════════════════
+function onAdTypeChange() {
+  const type = document.getElementById('af-type').value;
+  document.getElementById('af-image-section').style.display = type==='image' ? 'block' : 'none';
+  document.getElementById('af-video-section').style.display = type==='video' ? 'block' : 'none';
+}
+
+function openAdForm(ad) {
+  const box = document.getElementById('adFormBox');
+  document.getElementById('adFormTitle').textContent = ad ? 'Anzeige bearbeiten' : 'Neue Anzeige';
+  document.getElementById('af-id').value = ad?.id || '';
+  document.getElementById('af-type').value = ad?.type || 'image';
+  document.getElementById('af-duration').value = ad?.duration || 10;
+  document.getElementById('af-image_url').value = ad?.image_url || '';
+  document.getElementById('af-video_url').value = ad?.video_url || '';
+  onAdTypeChange();
+  updateAdPreview();
+  box.style.display = 'block';
+  box.scrollIntoView({behavior:'smooth'});
+}
+function closeAdForm() {
+  document.getElementById('adFormBox').style.display = 'none';
+}
+
+function updateAdPreview() {
+  const type = document.getElementById('af-type').value;
+  if(type==='image') {
+    const url = document.getElementById('af-image_url').value;
+    const prev = document.getElementById('af-img-preview');
+    const img  = document.getElementById('af-img-preview-el');
+    if(url){ img.src=url; prev.style.display='block'; }
+    else prev.style.display='none';
+  }
+}
+
+function handleAdImageFile(input) {
+  const file=input.files[0]; if(!file) return;
+  const r=new FileReader();
+  r.onload=e=>{
+    document.getElementById('af-image_url').value=e.target.result;
+    updateAdPreview();
+  };
+  r.readAsDataURL(file);
+}
+
+function handleAdVideoFile(input) {
+  const file=input.files[0]; if(!file) return;
+  const r=new FileReader();
+  r.onload=e=>{
+    document.getElementById('af-video_url').value=e.target.result;
+    const prev=document.getElementById('af-vid-preview');
+    const vid=document.getElementById('af-vid-preview-el');
+    vid.src=e.target.result; prev.style.display='block';
+  };
+  r.readAsDataURL(file);
+}
+
+async function saveAd() {
+  const id   = document.getElementById('af-id').value;
+  const type = document.getElementById('af-type').value;
+  const data = {
+    type,
+    duration:  parseInt(document.getElementById('af-duration').value)||10,
+    image_url: type==='image' ? document.getElementById('af-image_url').value : '',
+    video_url: type==='video' ? document.getElementById('af-video_url').value : '',
+    active:    true,
+    // Für display-kompatibilität
+    bg_color:  '#000000',
+    text_color:'#ffffff',
+    title:     '',
+    subtitle:  '',
+  };
+  if(!data.image_url && !data.video_url) { toast('Bitte URL oder Datei angeben',true); return; }
+  if(id) await api(`/api/local-ads/${id}`,'PATCH',data);
+  else   await api('/api/local-ads','POST',data);
+  toast('Anzeige gespeichert & auf Display gepusht ✓');
+  closeAdForm();
+  localAds = await api('/api/local-ads');
+  renderAdsPage();
+}
+
+async function toggleAd(id, currentActive) {
+  await api(`/api/local-ads/${id}`,'PATCH',{active: !currentActive});
+  localAds = await api('/api/local-ads'); renderAdsPage();
+  toast(currentActive ? 'Pausiert' : 'Aktiviert ✓');
+}
+
+async function deleteAd(id) {
+  if(!confirm('Anzeige löschen?')) return;
+  await api(`/api/local-ads/${id}`,'DELETE');
+  localAds = await api('/api/local-ads'); renderAdsPage(); toast('Gelöscht');
+}
+
+function renderAdsPage() {
+  // Cloud-Status
+  const cloudDot   = document.getElementById('cloudAdDot');
+  const cloudStatus= document.getElementById('cloudAdStatus');
+  const connected  = config.cloudConnected;
+  cloudDot.classList.toggle('on', connected);
+  cloudStatus.textContent = connected
+    ? '☁️ Cloud-Server verbunden — Werbung wird ferngesteuert'
+    : '⚠️ Cloud-Server: Nicht verbunden — Lokale Anzeigen aktiv';
+
+  const list = document.getElementById('adsList');
+  if(!localAds.length) {
+    list.innerHTML=`<div style="text-align:center;color:var(--muted);padding:40px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius)">
+      Noch keine lokalen Anzeigen.<br><br>
+      <span style="font-size:12px">Füge Bilder oder Videos hinzu — sie laufen automatisch durch wenn kein Cloud-Server verbunden ist.</span>
+    </div>`;
+    return;
+  }
+  list.innerHTML = localAds.map(ad=>{
+    const isImg   = ad.type==='image';
+    const isVid   = ad.type==='video';
+    const thumbEl = isImg
+      ? `<img class="ad-thumb" src="${ad.image_url||''}" alt="" onerror="this.style.display='none'">`
+      : `<div class="ad-thumb-video">🎬</div>`;
+    return `
+      <div class="ad-card">
+        <div class="ad-hdr">
+          ${thumbEl}
+          <div class="ad-info">
+            <div class="ad-name">${isImg?'🖼️ Bild':'🎬 Video'}</div>
+            <div class="ad-meta">${ad.duration}s Anzeigezeit</div>
+            <div class="ad-meta" style="word-break:break-all;margin-top:4px;color:#555;font-size:11px">${(ad.image_url||ad.video_url||'').slice(0,60)}${(ad.image_url||ad.video_url||'').length>60?'…':''}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+            <span class="badge ${ad.active!==false?'badge-green':'badge-gray'}">${ad.active!==false?'Aktiv':'Pausiert'}</span>
+            <div style="display:flex;gap:5px">
+              <button class="btn btn-muted btn-xs" onclick="toggleAd(${ad.id},${ad.active!==false})">${ad.active!==false?'⏸':'▶'}</button>
+              <button class="btn btn-muted btn-xs" onclick="openAdForm(${JSON.stringify(ad).replace(/"/g,'&quot;')})">✏️</button>
+              <button class="btn btn-danger btn-xs" onclick="deleteAd(${ad.id})">🗑</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ════════════════════════════════
+// SPEISEKARTE
+// ════════════════════════════════
+function toggleAddCat() {
+  const b=document.getElementById('addCatBox');
+  b.style.display=b.style.display==='none'?'block':'none';
+  if(b.style.display==='block') document.getElementById('newCatName').focus();
+}
+async function addCategory() {
+  const name=document.getElementById('newCatName').value.trim(); if(!name) return;
+  const cat=await api('/api/menu/categories','POST',{name}); cat.items=[];
+  menu.push(cat); document.getElementById('newCatName').value='';
+  document.getElementById('addCatBox').style.display='none';
+  renderMenu(); toast('Kategorie hinzugefügt ✓');
+}
+function renderMenu() {
+  const list=document.getElementById('menuList'); list.innerHTML='';
+  menu.forEach(cat=>{
+    const div=document.createElement('div'); div.className='menu-cat';
+    div.innerHTML=`
+      <div class="menu-cat-hdr" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="menu-cat-name">📂 ${cat.name}</span>
+        <div style="display:flex;gap:5px;align-items:center" onclick="event.stopPropagation()">
+          <span style="font-size:12px;color:var(--muted)">${(cat.items||[]).length} Artikel</span>
+          <button class="btn btn-muted btn-xs" onclick="renameCategory(${cat.id},'${cat.name.replace(/'/g,"\\'")}')">✏️</button>
+          <button class="btn btn-danger btn-xs" onclick="deleteCategory(${cat.id})">🗑</button>
+        </div>
+      </div>
+      <div class="cat-body-wrap open"><div class="menu-cat-body">
+        ${(cat.items||[]).map(item=>`
+          <div class="mi-row">
+            <span class="mi-num">${item.number||''}</span>
+            <span class="mi-name">${item.name}</span>
+            <span class="mi-price">${fmt(item.price)} ${currency}</span>
+            <div class="mi-btns">
+              <button class="btn btn-muted btn-xs" onclick="editItem(${item.id},'${item.name.replace(/'/g,"\\'")}',${item.price},'${item.number||''}')">✏️</button>
+              <button class="btn btn-danger btn-xs" onclick="deleteItem(${item.id},${cat.id})">✕</button>
+            </div>
+          </div>`).join('')}
+        <div class="add-row">
+          <input type="text" id="inum-${cat.id}" placeholder="Nr.">
+          <input type="text" id="iname-${cat.id}" placeholder="Artikelname">
+          <input type="number" id="iprice-${cat.id}" placeholder="0,00" step="0.01">
+          <button class="btn btn-green btn-sm" onclick="addItem(${cat.id})">+ Add</button>
+        </div>
+      </div></div>`;
+    list.appendChild(div);
+  });
+  if(!menu.length) list.innerHTML=`<div style="text-align:center;color:var(--muted);padding:40px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius)">Noch keine Kategorien.</div>`;
+}
+async function renameCategory(id,old){const name=prompt('Neuer Name:',old);if(!name||name===old)return;await api(`/api/menu/categories/${id}`,'PATCH',{name});const cat=menu.find(c=>c.id===id);if(cat)cat.name=name;renderMenu();toast('✓');}
+async function deleteCategory(id){if(!confirm('Kategorie löschen?'))return;await api(`/api/menu/categories/${id}`,'DELETE');menu=menu.filter(c=>c.id!==id);renderMenu();toast('Gelöscht');}
+async function addItem(catId){
+  const num=document.getElementById(`inum-${catId}`).value.trim();
+  const name=document.getElementById(`iname-${catId}`).value.trim();
+  const price=parseFloat(document.getElementById(`iprice-${catId}`).value);
+  if(!name||isNaN(price)){toast('Name & Preis erforderlich',true);return;}
+  const item=await api('/api/menu/items','POST',{category_id:catId,number:num,name,price});
+  const cat=menu.find(c=>c.id===catId);if(cat){cat.items=cat.items||[];cat.items.push({...item,number:num,name,price});}
+  renderMenu();toast('✓');
+}
+async function editItem(id,old,op,on){const name=prompt('Name:',old);if(!name)return;const price=parseFloat(prompt('Preis:',op));if(isNaN(price))return;const number=prompt('Nummer:',on)||'';await api(`/api/menu/items/${id}`,'PATCH',{name,price,number});menu.forEach(c=>c.items.forEach(i=>{if(i.id===id){i.name=name;i.price=price;i.number=number;}}));renderMenu();toast('✓');}
+async function deleteItem(id,catId){if(!confirm('Löschen?'))return;await api(`/api/menu/items/${id}`,'DELETE');const cat=menu.find(c=>c.id===catId);if(cat)cat.items=cat.items.filter(i=>i.id!==id);renderMenu();toast('Gelöscht');}
+
+// ════════════════════════════════
+// SETTINGS
+// ════════════════════════════════
+function loadSettingsFields() {
+  ['max_processing','max_ready','order_timeout','cloud_url','cloud_monitor_id'].forEach(k=>{
+    const el=document.getElementById('cfg-'+k); if(el) el.value=config[k]||'';
+  });
+}
+async function saveSettings() {
+  const data={};
+  ['max_processing','max_ready','order_timeout','cloud_url','cloud_monitor_id'].forEach(k=>{
+    const el=document.getElementById('cfg-'+k); if(el) data[k]=el.value;
+  });
+  await api('/api/config','PATCH',data); Object.assign(config,data);
+  toast('Gespeichert ✓');
+}
+
+// ════════════════════════════════
+// SOCKET & INIT
+// ════════════════════════════════
+const socket = io(SERVER,{reconnectionDelay:2000});
+const connDot   = document.getElementById('connDot');
+const connLabel = document.getElementById('connLabel');
+socket.on('connect',   ()=>{ connDot.className='dot on';  connLabel.textContent='Verbunden'; });
+socket.on('disconnect',()=>{ connDot.className='dot off'; connLabel.textContent='Getrennt'; });
+socket.on('config_update', cfg=>{ Object.assign(config,cfg); currency=config.currency||'€'; });
+
+// ════════════════════════════════
+// AUTH (Logout + Passwort ändern)
+// ════════════════════════════════
+function getAuthToken() {
+  return (document.cookie || '').split(';')
+    .map(c=>c.trim())
+    .find(c=>c.startsWith('qm_admin='))
+    ?.split('=')[1] || '';
+}
+async function doLogout() {
+  if(!confirm('Wirklich abmelden?')) return;
+  try {
+    await fetch('/api/logout', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ token: getAuthToken() })
+    });
+  } catch(e) {}
+  document.cookie = 'qm_admin=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+  window.location.href = '/login.html';
+}
+async function changePassword() {
+  const oldPwd = prompt('Aktuelles Passwort:');
+  if(!oldPwd) return;
+  const newPwd = prompt('Neues Passwort (min. 4 Zeichen):');
+  if(!newPwd) return;
+  const confirm2 = prompt('Neues Passwort wiederholen:');
+  if(newPwd !== confirm2) { toast('Passwörter stimmen nicht überein',true); return; }
+  try {
+    const res = await fetch('/api/change-password', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ token: getAuthToken(), oldPassword: oldPwd, newPassword: newPwd })
+    });
+    const data = await res.json();
+    if (data.success) toast('Passwort geändert ✓');
+    else toast(data.error || 'Fehler', true);
+  } catch(e) { toast('Verbindungsfehler',true); }
+}
+
+async function init() {
+  try {
+    [config, menu, monitors, localAds] = await Promise.all([
+      api('/api/config'),
+      api('/api/menu'),
+      api('/api/monitors'),
+      api('/api/local-ads'),
+    ]);
+    currency = config.currency||'€';
+    // Kategorie-Zustände initialisieren
+    monitors.forEach(m=>{
+      const ids = (m.categoryIds||[]).map(Number);
+      monitorCatState[m.id] = new Set(ids);
+    });
+    if(config.display_layout) { try{ zones=JSON.parse(config.display_layout); }catch(e){} }
+    loadStats();
+  } catch(e) { console.error(e); }
+}
+init();
+</script>
+</body>
+</html>

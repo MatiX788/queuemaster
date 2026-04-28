@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.QueueMaster" parent="Theme.AppCompat.DayNight">
+        <item name="colorPrimary">#c8102e</item>
+        <item name="colorPrimaryDark">#a00d24</item>
+        <item name="colorAccent">#c8102e</item>
+        <item name="android:statusBarColor">#111111</item>
+        <item name="android:navigationBarColor">#111111</item>
+        <item name="android:windowBackground">#111111</item>
+    </style>
+
+    <style name="Theme.QueueMaster.NoActionBar" parent="Theme.QueueMaster">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:windowFullscreen">false</item>
+    </style>
+</resources>

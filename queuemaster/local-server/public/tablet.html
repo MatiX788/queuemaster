@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>QueueMaster – Personal</title>
+<!-- PWA: Als App installierbar -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#c8102e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="QueueMaster">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png">
+<style>
+:root{
+  --accent:#c8102e;--accent2:#a00d24;--bg:#111;--bg2:#1a1a1a;--bg3:#252525;
+  --bg4:#2e2e2e;--text:#fff;--muted:#888;--green:#2e7d32;--yellow:#d4a017;
+  --radius:10px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:Arial,sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+.header{background:var(--bg2);border-bottom:2px solid var(--accent);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.header-left{display:flex;align-items:center;gap:12px}
+.header-logo{height:36px;max-width:120px;object-fit:contain;display:none}
+.header-logo.visible{display:block}
+.header-title{font-size:20px;font-weight:900;font-family:'Arial Black',Arial,sans-serif}
+.header-right{display:flex;align-items:center;gap:10px}
+.conn-dot{width:10px;height:10px;border-radius:50%;background:#555;flex-shrink:0}
+.conn-dot.on{background:#4caf50}.conn-dot.off{background:#f44336}
+.reset-btn{background:var(--bg3);color:var(--muted);border:none;padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer}
+.reset-btn:active{background:var(--accent);color:#fff}
+
+.tabs{display:flex;background:var(--bg2);flex-shrink:0}
+.tab{flex:1;padding:14px 8px;text-align:center;font-weight:700;font-size:15px;color:var(--muted);border-bottom:3px solid transparent;cursor:pointer;user-select:none}
+.tab.active{color:#fff;border-bottom-color:var(--accent)}
+
+.content{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.pane{display:none;flex:1;overflow-y:auto}
+.pane.active{display:flex;flex-direction:column}
+
+/* ORDERS */
+.orders-list{padding:12px;display:flex;flex-direction:column;gap:10px}
+.ocard{background:var(--bg2);border-radius:var(--radius);padding:14px;border-left:4px solid var(--accent)}
+.ocard.ready{border-left-color:var(--green)}
+.ocard.timeout{border-left-color:#ff5722}
+.otop{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.onum{font-size:32px;font-weight:900;line-height:1}
+.ometa{text-align:right}
+.olabel{font-size:13px;color:#ccc;font-weight:700}
+.otime{font-size:12px;color:var(--muted)}
+.otimer{font-size:13px;font-weight:700}
+.otimer.warn{color:#ff9800}.otimer.late{color:#f44336}
+.badge{display:inline-block;border-radius:5px;padding:3px 10px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.badge-proc{background:var(--yellow);color:#000}
+.badge-ready{background:var(--green);color:#fff}
+.oitems{font-size:13px;color:#aaa;margin-bottom:4px;line-height:1.6}
+.onote{font-size:12px;color:#ff9800;font-style:italic;margin-bottom:8px}
+.oactions{display:flex;gap:8px;flex-wrap:wrap}
+.abtn{flex:1;min-width:100px;padding:10px 8px;border-radius:8px;border:none;font-weight:700;font-size:14px;cursor:pointer;color:#fff;user-select:none}
+.abtn:active{opacity:.7}
+.abtn-ready{background:var(--green)}
+.abtn-back{background:var(--bg4);color:var(--muted)}
+.abtn-pickup{background:#455a64}
+.abtn-del{background:#333;color:var(--muted);flex:0;min-width:44px}
+.empty-msg{text-align:center;color:var(--muted);margin:60px 20px;font-size:16px}
+
+/* NEW ORDER */
+.now{display:flex;flex-direction:column;height:100%}
+.now-fields{padding:12px 12px 0;display:flex;gap:10px;flex-shrink:0}
+.nfield{flex:1}
+.nfield label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:700}
+.nfield input{width:100%;background:var(--bg3);color:#fff;border:1px solid var(--bg4);border-radius:8px;padding:10px 12px;font-size:14px;margin-top:4px;font-family:inherit}
+.nfield input:focus{outline:none;border-color:var(--accent)}
+
+.cat-tabs{display:flex;gap:6px;padding:10px 12px;overflow-x:auto;flex-shrink:0}
+.cat-tabs::-webkit-scrollbar{display:none}
+.ctab{flex-shrink:0;padding:7px 14px;border-radius:20px;border:none;background:var(--bg3);color:var(--muted);font-weight:700;font-size:13px;cursor:pointer;user-select:none;transition:background .15s}
+.ctab.active{background:var(--accent);color:#fff}
+
+.items-grid{flex:1;overflow-y:auto;padding:0 12px 8px;display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;align-content:start}
+.ibtn{background:var(--bg3);border:2px solid transparent;border-radius:var(--radius);padding:12px;cursor:pointer;text-align:left;user-select:none;transition:border-color .15s,background .15s}
+.ibtn.selected{border-color:var(--accent);background:rgba(200,16,46,.15)}
+.ibtn:active{background:var(--bg4)}
+.iname{font-size:14px;font-weight:700;color:#ddd;display:block;margin-bottom:4px}
+.inum{font-size:11px;color:var(--muted);display:block;margin-bottom:4px}
+.iprice{font-size:15px;font-weight:900;color:#fff}
+.qty-wrap{display:flex;align-items:center;gap:8px;margin-top:8px}
+.qbtn{width:30px;height:30px;border-radius:50%;border:none;font-size:20px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;user-select:none;flex-shrink:0;line-height:1}
+.qminus{background:#444;color:#ccc}
+.qminus:active{background:#666}
+.qplus{background:var(--accent);color:#fff}
+.qplus:active{background:var(--accent2)}
+.qnum{font-size:16px;font-weight:700;min-width:24px;text-align:center;color:#fff}
+
+.order-bar{background:var(--bg2);border-top:1px solid var(--bg3);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:12px}
+.bar-info{font-size:15px;font-weight:700;color:#ddd}
+.bar-info .hi{color:var(--accent)}
+.submit-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:12px 24px;font-size:16px;font-weight:900;cursor:pointer;white-space:nowrap}
+.submit-btn:active{background:var(--accent2)}
+.submit-btn:disabled{background:#444;color:#666;cursor:default}
+
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#1e1e1e;color:#fff;padding:12px 24px;border-radius:10px;font-weight:700;font-size:15px;z-index:1000;opacity:0;transition:opacity .3s;border:2px solid var(--accent);pointer-events:none;text-align:center;max-width:90vw}
+.toast.show{opacity:1}
+
+/* PWA Install Banner */
+.install-banner{
+  position:fixed;bottom:0;left:0;right:0;
+  background:linear-gradient(180deg,var(--bg2) 0%,var(--bg) 100%);
+  border-top:2px solid var(--accent);
+  padding:16px 20px;display:none;align-items:center;gap:14px;
+  z-index:900;box-shadow:0 -4px 20px rgba(0,0,0,.5);
+  animation:slideUp .3s ease;
+}
+.install-banner.show{display:flex}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.install-icon{width:48px;height:48px;border-radius:10px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+.install-text{flex:1}
+.install-title{font-size:15px;font-weight:700;margin-bottom:2px}
+.install-sub{font-size:12px;color:var(--muted)}
+.install-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap}
+.install-btn:active{background:var(--accent2)}
+.install-close{background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:4px 8px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <img id="headerLogo" class="header-logo" src="" alt="Logo">
+    <div class="header-title">🍔 Personal</div>
+  </div>
+  <div class="header-right">
+    <button class="reset-btn" onclick="confirmReset()">Tagesabschluss</button>
+    <div class="conn-dot off" id="connDot"></div>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('orders')" id="tab-orders">
+    Bestellungen <span id="obadge" style="background:var(--accent);color:#fff;border-radius:10px;padding:1px 7px;font-size:12px;display:none"></span>
+  </div>
+  <div class="tab" onclick="switchTab('new')" id="tab-new">+ Neue Bestellung</div>
+</div>
+
+<div class="content">
+  <div class="pane active" id="pane-orders">
+    <div class="orders-list" id="ordersList">
+      <div class="empty-msg">Lädt…</div>
+    </div>
+  </div>
+  <div class="pane" id="pane-new">
+    <div class="now">
+      <div class="now-fields">
+        <div class="nfield"><label>Name / Bezeichnung (optional)</label><input type="text" id="oLabel" placeholder="z.B. Tisch 4, Max M."></div>
+        <div class="nfield"><label>Notiz (optional)</label><input type="text" id="oNote" placeholder="ohne Zwiebeln, extra Käse..."></div>
+      </div>
+      <div class="cat-tabs" id="catTabs"></div>
+      <div class="items-grid" id="itemsGrid"></div>
+      <div class="order-bar">
+        <div class="bar-info">
+          <span class="hi" id="selCount">0</span> Artikel · <span class="hi" id="selTotal">0,00</span> <span id="currencyLbl">€</span>
+        </div>
+        <button class="submit-btn" id="submitBtn" onclick="submitOrder()" disabled>Aufgeben →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- PWA Install Banner -->
+<div class="install-banner" id="installBanner">
+  <div class="install-icon">📱</div>
+  <div class="install-text">
+    <div class="install-title">Als App installieren</div>
+    <div class="install-sub">Schnellerer Zugriff vom Home-Screen</div>
+  </div>
+  <button class="install-btn" onclick="installPWA()">Installieren</button>
+  <button class="install-close" onclick="dismissInstall()" aria-label="Schließen">✕</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+<script>
+// ═══════════════════════════════
+// PWA INSTALLATION
+// ═══════════════════════════════
+let deferredPrompt = null;
+const installBanner = document.getElementById('installBanner');
+
+// Service Worker registrieren
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => console.log('✅ App-Modus aktiviert'))
+      .catch(err => console.log('SW-Fehler:', err));
+  });
+}
+
+// Install-Prompt abfangen
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  // Nur zeigen wenn nicht schon installiert und nicht abgewiesen
+  const dismissed = localStorage.getItem('qm_install_dismissed');
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+  if (!dismissed && !isStandalone) {
+    setTimeout(() => installBanner.classList.add('show'), 2000);
+  }
+});
+
+async function installPWA() {
+  if (!deferredPrompt) {
+    // iOS Fallback: Anleitung anzeigen
+    alert('So installierst du die App auf dem iPad:\n\n1. Tippe auf das Teilen-Symbol (▲ unten)\n2. Wähle "Zum Home-Bildschirm"\n3. Tippe auf "Hinzufügen"');
+    return;
+  }
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  installBanner.classList.remove('show');
+  if (outcome === 'accepted') {
+    toast('✓ App wird installiert!');
+  }
+}
+
+function dismissInstall() {
+  installBanner.classList.remove('show');
+  localStorage.setItem('qm_install_dismissed', '1');
+}
+
+// App-Modus erkennen (wenn installiert)
+if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+  console.log('📱 Läuft als installierte App');
+  document.body.classList.add('pwa-mode');
+}
+const SERVER = window.location.origin;
+let orders   = [];
+let menu     = [];
+let config   = {};
+let currency = '€';
+let orderTimeout = 15;
+let activeCat = 0;
+
+// ── KEY FIX: Item-Map statt JSON.stringify in onclick ──
+const itemMap = {}; // id → item-Objekt
+let selected  = {}; // id → { qty }
+
+// ════════════════════════════════
+// UTILS
+// ════════════════════════════════
+function toast(msg, dur=2500) {
+  const t=document.getElementById('toast'); t.textContent=msg;
+  t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),dur);
+}
+function fmt(n) { return Number(n).toFixed(2).replace('.',','); }
+function timeSince(ts) {
+  const m=Math.floor((Date.now()-new Date(ts).getTime())/60000);
+  return m<1?'Gerade eben':m+' Min.';
+}
+function switchTab(n) {
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('pane-'+n).classList.add('active');
+  document.getElementById('tab-'+n).classList.add('active');
+}
+
+// ════════════════════════════════
+// BESTELLUNGEN
+// ════════════════════════════════
+async function loadOrders() {
+  try {
+    orders = await (await fetch(SERVER+'/api/orders')).json();
+    renderOrders();
+  } catch(e) {}
+}
+
+function renderOrders() {
+  const list   = document.getElementById('ordersList');
+  const badge  = document.getElementById('obadge');
+  const active = orders.filter(o=>o.status!=='picked_up');
+  badge.textContent = active.length || '';
+  badge.style.display = active.length ? 'inline' : 'none';
+
+  if (!active.length) { list.innerHTML='<div class="empty-msg">Keine aktiven Bestellungen 🎉</div>'; return; }
+
+  list.innerHTML = '';
+  active.sort((a,b)=>a.number-b.number).forEach(order => {
+    const items = (() => { try { return JSON.parse(order.items||'[]'); } catch { return []; } })();
+    const minAgo = Math.floor((Date.now()-new Date(order.created_at).getTime())/60000);
+    const isTimeout = minAgo >= orderTimeout && order.status==='processing';
+    const timerClass = minAgo>=orderTimeout?'late':minAgo>=orderTimeout*.7?'warn':'';
+    const card = document.createElement('div');
+    card.className = `ocard${order.status==='ready'?' ready':''}${isTimeout?' timeout':''}`;
+    card.innerHTML = `
+      <div class="otop">
+        <div class="onum">#${order.number}</div>
+        <div class="ometa">
+          ${order.label?`<div class="olabel">${order.label}</div>`:''}
+          <div class="otime">${timeSince(order.created_at)}</div>
+          <div class="otimer ${timerClass}">${minAgo} Min.</div>
+        </div>
+      </div>
+      <span class="badge ${order.status==='ready'?'badge-ready':'badge-proc'}">${order.status==='ready'?'✓ Fertig':'In Bearbeitung'}</span>
+      ${items.length?`<div class="oitems">${items.map(i=>`<b>${i.qty||1}×</b> ${i.name}${i.note?` <em style="color:#ff9800">(${i.note})</em>`:''}`).join('<br>')}</div>`:''}
+      ${order.note?`<div class="onote">📝 ${order.note}</div>`:''}
+      <div class="oactions">
+        ${order.status==='processing'?`<button class="abtn abtn-ready" onclick="markReady(${order.number})">✓ Fertig melden</button>`:''}
+        ${order.status==='ready'?`
+          <button class="abtn abtn-pickup" onclick="markPickedUp(${order.number})">Abgeholt ✓</button>
+          <button class="abtn abtn-back" onclick="markBack(${order.number})">← Zurück</button>
+        `:''}
+        <button class="abtn abtn-del" onclick="deleteOrder(${order.number})">🗑</button>
+      </div>`;
+    list.appendChild(card);
+  });
+}
+
+setInterval(renderOrders, 60000);
+
+async function markReady(num)    { await fetch(`${SERVER}/api/orders/${num}/ready`,    {method:'PATCH'}); }
+async function markPickedUp(num) { await fetch(`${SERVER}/api/orders/${num}/pickedup`, {method:'PATCH'}); }
+async function markBack(num)     { await fetch(`${SERVER}/api/orders/${num}/processing`,{method:'PATCH'}); }
+async function deleteOrder(num) {
+  if (!confirm(`Bestellung #${num} löschen?`)) return;
+  await fetch(`${SERVER}/api/orders/${num}`, {method:'DELETE'});
+  orders = orders.filter(o=>o.number!==num); renderOrders();
+}
+async function confirmReset() {
+  if (!confirm('Tagesabschluss?\nAlle Bestellungen schließen und Zähler zurücksetzen.')) return;
+  await fetch(`${SERVER}/api/reset`, {method:'POST'});
+  toast('Tagesabschluss ✓'); loadOrders();
+}
+
+async function submitOrder() {
+  const items = Object.entries(selected)
+    .filter(([,s])=>s.qty>0)
+    .map(([id,s])=>({ id:+id, name:itemMap[id].name, price:itemMap[id].price, qty:s.qty }));
+  if (!items.length) return;
+
+  const label = document.getElementById('oLabel').value.trim();
+  const note  = document.getElementById('oNote').value.trim();
+
+  const res  = await fetch(`${SERVER}/api/orders`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ items, label, note })
+  });
+  const data = await res.json();
+  toast(`✓ Bestellung #${data.orderNumber} aufgegeben!`);
+
+  // Reset
+  selected = {};
+  document.getElementById('oLabel').value = '';
+  document.getElementById('oNote').value  = '';
+  renderItemsGrid();
+  updateBar();
+  switchTab('orders');
+}
+
+// ════════════════════════════════
+// MENÜ
+// ════════════════════════════════
+function buildItemMap() {
+  // Alle Items in die Map laden
+  menu.forEach(cat => {
+    (cat.items||[]).forEach(item => { itemMap[item.id] = item; });
+  });
+}
+
+function renderCatTabs() {
+  const tabs = document.getElementById('catTabs');
+  tabs.innerHTML = '';
+  menu.forEach((cat,i) => {
+    const btn = document.createElement('button');
+    btn.className = 'ctab' + (i===0?' active':'');
+    btn.textContent = cat.name;
+    btn.onclick = () => {
+      activeCat = i;
+      document.querySelectorAll('.ctab').forEach((t,j)=>t.classList.toggle('active',j===i));
+      renderItemsGrid();
+    };
+    tabs.appendChild(btn);
+  });
+  if (menu.length) { activeCat=0; renderItemsGrid(); }
+}
+
+function renderItemsGrid() {
+  const grid  = document.getElementById('itemsGrid');
+  grid.innerHTML = '';
+  const items = menu[activeCat]?.items || [];
+
+  items.forEach(item => {
+    const qty = selected[item.id]?.qty || 0;
+    const div = document.createElement('div');
+    div.className = 'ibtn' + (qty>0?' selected':'');
+    div.id = 'ic-'+item.id;
+
+    div.innerHTML = `
+      <span class="inum">${item.number?'#'+item.number:''}</span>
+      <span class="iname">${item.name}</span>
+      <span class="iprice">${fmt(item.price)} ${currency}</span>
+      <div class="qty-wrap">
+        <button class="qbtn qminus" id="qm-${item.id}">−</button>
+        <span class="qnum" id="qn-${item.id}">${qty}</span>
+        <button class="qbtn qplus"  id="qp-${item.id}">+</button>
+      </div>`;
+
+    // Event-Listener direkt (kein JSON in onclick!)
+    div.querySelector('.qminus').addEventListener('click', e => {
+      e.stopPropagation();
+      changeQty(item.id, -1);
+    });
+    div.querySelector('.qplus').addEventListener('click', e => {
+      e.stopPropagation();
+      changeQty(item.id, +1);
+    });
+    div.addEventListener('click', () => changeQty(item.id, +1));
+
+    grid.appendChild(div);
+  });
+}
+
+// ── DER FIXE: changeQty nutzt itemMap, kein JSON.stringify ──
+function changeQty(id, delta) {
+  const current = selected[id]?.qty || 0;
+  const newQty  = Math.max(0, current + delta);
+
+  if (newQty === 0) delete selected[id];
+  else selected[id] = { qty: newQty };
+
+  // UI aktualisieren
+  const card  = document.getElementById('ic-'+id);
+  const numEl = document.getElementById('qn-'+id);
+  if (card)  card.classList.toggle('selected', newQty > 0);
+  if (numEl) numEl.textContent = newQty;
+
+  updateBar();
+}
+
+function updateBar() {
+  const entries = Object.entries(selected).filter(([,s])=>s.qty>0);
+  const count   = entries.reduce((s,[,e])=>s+e.qty, 0);
+  const total   = entries.reduce((s,[id,e])=>s+(itemMap[id]?.price||0)*e.qty, 0);
+  document.getElementById('selCount').textContent = count;
+  document.getElementById('selTotal').textContent = fmt(total);
+  document.getElementById('submitBtn').disabled = count === 0;
+}
+
+// ════════════════════════════════
+// SOCKET & INIT
+// ════════════════════════════════
+const socket = io(SERVER, { reconnectionDelay: 2000 });
+const connDot = document.getElementById('connDot');
+socket.on('connect',    () => { connDot.className='conn-dot on'; });
+socket.on('disconnect', () => { connDot.className='conn-dot off'; });
+socket.on('current_status', () => loadOrders());
+socket.on('status_update',  () => loadOrders());
+socket.on('config_update', cfg => {
+  config = cfg;
+  currency = cfg.currency || '€';
+  orderTimeout = parseInt(cfg.order_timeout||15);
+  document.getElementById('currencyLbl').textContent = currency;
+  const logo = document.getElementById('headerLogo');
+  if (cfg.logo_url) { logo.src=cfg.logo_url; logo.classList.add('visible'); }
+  else logo.classList.remove('visible');
+});
+
+async function init() {
+  try {
+    [config, menu] = await Promise.all([
+      fetch(SERVER+'/api/config').then(r=>r.json()),
+      fetch(SERVER+'/api/menu').then(r=>r.json()),
+    ]);
+    currency     = config.currency || '€';
+    orderTimeout = parseInt(config.order_timeout || 15);
+    document.getElementById('currencyLbl').textContent = currency;
+    if (config.logo_url) {
+      const logo = document.getElementById('headerLogo');
+      logo.src = config.logo_url; logo.classList.add('visible');
+    }
+    buildItemMap();
+    renderCatTabs();
+  } catch(e) { console.error(e); }
+  loadOrders();
+}
+
+init();
+</script>
+</body>
+</html>

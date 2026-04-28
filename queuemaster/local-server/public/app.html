@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QueueMaster App herunterladen</title>
+<style>
+:root{
+  --bg:#0a0a0f;--bg2:#12121a;--bg3:#1a1a26;--bg4:#22222e;
+  --border:#2e2e42;--text:#e8e8f0;--muted:#888;
+  --accent:#c8102e;--accent2:#e8203e;--green:#22c55e;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,Arial,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:32px 20px}
+.container{max-width:500px;width:100%;text-align:center}
+.logo{width:120px;height:120px;margin:0 auto 24px;background:var(--accent);border-radius:28px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 32px rgba(200,16,46,.3)}
+.logo svg{width:72px;height:72px;fill:#fff}
+h1{font-size:32px;font-weight:900;margin-bottom:8px;letter-spacing:-.5px}
+.subtitle{color:var(--muted);font-size:16px;margin-bottom:32px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:16px}
+.card-title{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-bottom:12px}
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+.info-row:last-child{border:none}
+.info-label{color:var(--muted);font-size:14px}
+.info-value{font-weight:700;font-size:14px}
+.btn-download{display:inline-flex;align-items:center;gap:12px;background:var(--accent);color:#fff;border:none;border-radius:12px;padding:18px 32px;font-size:18px;font-weight:800;cursor:pointer;text-decoration:none;transition:all .15s;width:100%;justify-content:center;margin-top:8px}
+.btn-download:hover{background:var(--accent2);transform:translateY(-2px);box-shadow:0 8px 20px rgba(200,16,46,.3)}
+.btn-download:active{transform:translateY(0)}
+.btn-download svg{width:24px;height:24px;fill:#fff}
+.btn-download.disabled{background:var(--bg4);color:var(--muted);cursor:not-allowed;transform:none;box-shadow:none}
+.btn-download.disabled:hover{background:var(--bg4);transform:none;box-shadow:none}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;margin-left:8px}
+.badge-available{background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.3)}
+.badge-missing{background:rgba(200,16,46,.15);color:#f87171;border:1px solid rgba(200,16,46,.3)}
+.steps{text-align:left;background:var(--bg3);border-radius:12px;padding:20px;margin-top:16px;font-size:14px;line-height:1.7}
+.steps ol{padding-left:22px}
+.steps li{margin-bottom:8px;color:var(--muted)}
+.steps li strong{color:var(--text)}
+.warning{background:rgba(251,146,60,.1);border:1px solid rgba(251,146,60,.3);border-radius:10px;padding:14px;font-size:13px;color:#fb923c;line-height:1.6;margin-top:16px;text-align:left}
+.alt-link{margin-top:24px;color:var(--muted);font-size:13px}
+.alt-link a{color:var(--accent);text-decoration:none;font-weight:700}
+.alt-link a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="logo">
+    <svg viewBox="0 0 24 24">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10c1.59 0 3.09-.37 4.43-1.03L21 22l-2-5.43C20.37 15.09 21 13.59 21 12c0-5.52-4.48-10-10-10zm0 18c-1.14 0-2.21-.26-3.18-.71l-.19-.09L5.5 20l.9-3.13-.11-.19C5.77 15.71 5.5 14.7 5.5 13.5 5.5 9.81 8.81 6.5 12.5 6.5s7 3.31 7 7-3.31 7-7 7z"/>
+    </svg>
+  </div>
+
+  <h1>QueueMaster App</h1>
+  <p class="subtitle">Personal-App für Android-Tablets</p>
+
+  <div class="card">
+    <div class="card-title">📱 App-Information</div>
+    <div class="info-row">
+      <span class="info-label">Status</span>
+      <span class="info-value"><span id="statusBadge" class="badge badge-missing">Prüfe...</span></span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Größe</span>
+      <span class="info-value" id="sizeLabel">—</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Aktualisiert</span>
+      <span class="info-value" id="modifiedLabel">—</span>
+    </div>
+
+    <a id="downloadBtn" href="/downloads/QueueMaster.apk" class="btn-download disabled" download>
+      <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+      <span id="btnLabel">APK wird geladen...</span>
+    </a>
+  </div>
+
+  <div class="steps">
+    <div class="card-title" style="margin-bottom:10px">📋 Installation auf dem Tablet</div>
+    <ol>
+      <li>APK mit dem Button oben <strong>herunterladen</strong></li>
+      <li>In der Benachrichtigungsleiste auf die heruntergeladene Datei tippen</li>
+      <li>Falls eine Warnung kommt: <strong>„Unbekannte Apps zulassen"</strong> erlauben</li>
+      <li>Auf <strong>„Installieren"</strong> tippen</li>
+      <li>App öffnen → Server-URL eingeben (steht im Server-Fenster auf dem PC)</li>
+    </ol>
+  </div>
+
+  <div class="warning">
+    ⚠️ <strong>APK noch nicht verfügbar?</strong><br>
+    Die APK wird automatisch über GitHub Actions gebaut. Siehe <code>APK_BAUEN.md</code> für Anleitung.
+  </div>
+
+  <div class="alt-link">
+    <a href="/admin.html">← Zurück zum Admin</a>
+  </div>
+</div>
+
+<script>
+async function loadInfo() {
+  try {
+    const res = await fetch('/api/apk-info');
+    const data = await res.json();
+    const badge = document.getElementById('statusBadge');
+    const btn = document.getElementById('downloadBtn');
+    const btnLabel = document.getElementById('btnLabel');
+    const sizeLabel = document.getElementById('sizeLabel');
+    const modifiedLabel = document.getElementById('modifiedLabel');
+
+    if (data.available) {
+      badge.textContent = '✓ Verfügbar';
+      badge.className = 'badge badge-available';
+      sizeLabel.textContent = data.sizeMB + ' MB';
+      modifiedLabel.textContent = new Date(data.modified).toLocaleString('de-DE');
+      btn.classList.remove('disabled');
+      btnLabel.textContent = 'APK herunterladen';
+    } else {
+      badge.textContent = '✗ Nicht verfügbar';
+      badge.className = 'badge badge-missing';
+      btn.classList.add('disabled');
+      btn.onclick = (e) => { e.preventDefault(); alert('APK wurde noch nicht gebaut. Siehe APK_BAUEN.md für Anleitung.'); };
+      btnLabel.textContent = 'APK nicht verfügbar';
+    }
+  } catch(e) {
+    console.error(e);
+  }
+}
+loadInfo();
+</script>
+
+</body>
+</html>
